@@ -16,7 +16,8 @@
 ## Текущее состояние
 
 В данный момент это бета версия. Наблюдается не стабильная работа при чтении исторических данных.
-Внимание! Стабильное чтение исторических данных работает только при выставлении уровня логирования "DEBUG". 
+
+<span style="color:red"><b>Внимание!</b></span> Стабильное чтение исторических данных работает только при выставлении уровня логирования "DEBUG". 
 Предполагаю, что это связано с таймаутами чтения данных из CNL.    
 
 ## Планы
@@ -30,7 +31,11 @@
 Код написан на python3 и тестировался на _Raspberry Pi Zero_ с использованием [PyCharm Professional](https://www.jetbrains.com/pycharm/). 
 Установка необходимых библиотек:
 
-`sudo apt-get install python3-pip libudev-dev libusb-1.0-0-dev liblzo2-dev
+```bash
+sudo apt-get install python3-pip libudev-dev libusb-1.0-0-dev liblzo2-dev
 sudo -H pip3 install hidapi astm crc16 python-lzo PyCrypto python-dateutil pytz
-`
-Запуск: `python3 main.py`
+```
+Запуск: 
+```bash
+python3 main.py
+```

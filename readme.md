@@ -15,7 +15,8 @@ The projects are based on:
 ## Current state
 
 At the moment, this is a beta version. Unstable work is observed when reading historical data.
-**Attention!** Stable reading of historical data works only when the "DEBUG" logging level is set.
+
+<span style="color:red"><b>Attention!</b></span> Stable reading of historical data works only when the "DEBUG" logging level is set.
 I assume this is due to the timeouts for reading data from CNL.
 
 ## Plans
@@ -29,7 +30,11 @@ I assume this is due to the timeouts for reading data from CNL.
 The code is written in python3 and tested on a _Raspberry Pi Zero_ using [PyCharm Professional](https://www.jetbrains.com/pycharm/).
 Installing the required libraries:
 
-`sudo apt-get install python3-pip libudev-dev libusb-1.0-0-dev liblzo2-dev
+```bash
+sudo apt-get install python3-pip libudev-dev libusb-1.0-0-dev liblzo2-dev
 sudo -H pip3 install hidapi astm crc16 python-lzo PyCrypto python-dateutil pytz
-`
-Run: `python3 main.py`
+```
+Run: 
+```bash
+python3 main.py
+```
