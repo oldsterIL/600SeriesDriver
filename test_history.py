@@ -26,17 +26,16 @@ if __name__ == '__main__':
     events = mt.process_pump_history(history_pages, cnl24lib.HistoryDataType.PUMP_DATA)
     print ("# All events:")
     for ev in events:
-        # if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.SENSOR_GLUCOSE_READINGS_EXTENDED:
-        #     print (ev, binascii.hexlify(ev.eventData) )
-        print (ev )
+        if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.OLD_BASAL_PATTERN:
+            print (ev, binascii.hexlify(ev.eventData) )
+        # print (ev )
 
     print ("# End events")
 
-# ii = 0
-# for i in range(len(self.eventData)):
-#     if i >= 0x0B:
-#         ii = i - 0x0B
-#         print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.readByte(self.eventData, i), ii))
-#     else:
-#         print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.readByte(self.eventData, i), ii))
-#
+#         ii = 0
+#         for i in range(len(self.eventData)):
+#             if i >= 0x0B:
+#                 ii = i - 0x0B
+#                 print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))
+#             else:
+#                 print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))
