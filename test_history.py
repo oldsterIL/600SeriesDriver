@@ -26,9 +26,11 @@ if __name__ == '__main__':
     events = mt.process_pump_history(history_pages, cnl24lib.HistoryDataType.PUMP_DATA)
     print ("# All events:")
     for ev in events:
-        if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.OLD_BASAL_PATTERN:
+        if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_ALARM_AUTO_CLEARED:
             print (ev, binascii.hexlify(ev.eventData) )
-        # print (ev )
+
+        # if ev.event_type != cnl24lib.NGPHistoryEvent.EVENT_TYPE.PLGM_CONTROLLER_STATE:
+        #     print (ev )
 
     print ("# End events")
 

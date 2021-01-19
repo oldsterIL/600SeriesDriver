@@ -23,53 +23,54 @@ VERSION = "0.1"
 
 # + AlarmClearedEvent
 # +- AlarmNotificationEvent
-# + BloodGlucoseReadingEvent
-# + CalibrationCompleteEvent
-# + DailyTotalsEvent
-# EndOfDayMarkerEvent - No parsed
-# GeneralSensorSettingsChangeEvent - No parsed
-# + InsulinDeliveryRestartedEvent
-# + InsulinDeliveryStoppedEvent
+# + CalibrationCompleteEvent CALIBRATION_COMPLETE
+# + DailyTotalsEvent DAILY_TOTALS
+# + InsulinDeliveryRestartedEvent INSULIN_DELIVERY_RESTARTED
+# + InsulinDeliveryStoppedEvent INSULIN_DELIVERY_STOPPED
 
 ##### Bolus #####
-# + NormalBolusDeliveredEvent
-# + NormalBolusProgrammedEvent
+# + NormalBolusProgrammedEvent NORMAL_BOLUS_PROGRAMMED
+# + NormalBolusDeliveredEvent NORMAL_BOLUS_DELIVERED
 # + DualBolusProgrammedEvent DUAL_BOLUS_PROGRAMMED
 # + DualBolusPartDeliveredEvent DUAL_BOLUS_PART_DELIVERED
-# NGPHistoryEvent 0x27 BOLUS_CANCELED - No parsed
 # + SquareBolusDeliveredEvent SQUARE_BOLUS_DELIVERED
-# + BolusWizardEstimateEvent
+# + SquareBolusProgrammedEvent SQUARE_BOLUS_PROGRAMMED
+# NGPHistoryEvent 0x27 BOLUS_CANCELED - No parsed
+# + BolusWizardEstimateEvent BOLUS_WIZARD_ESTIMATE
+# MEAL_WIZARD_ESTIMATE
 ##### Bolus #####
 
 ##### Basal #####
 # + TempBasalProgrammedEvent  TEMP_BASAL_PROGRAMMED
-# + BasalSegmentStartEvent
+# + BasalSegmentStartEvent  BASAL_SEGMENT_START
 # + BasalPatternSelectedEvent BASAL_PATTERN_SELECTED
 # + TempBasalCompleteEvent  TEMP_BASAL_COMPLETE
-# OldBasalPatternEvent  OLD_BASAL_PATTERN
-# NewBasalPatternEvent  NEW_BASAL_PATTERN
-
+# + OldBasalPatternEvent  OLD_BASAL_PATTERN
+# + NewBasalPatternEvent  NEW_BASAL_PATTERN
 ##### Basal #####
 
+# + BloodGlucoseReadingEvent BG_READING
+# ClosedLoopBloodGlucoseReadingEvent CLOSED_LOOP_BG_READING:
 
+# CLOSED_LOOP_DAILY_TOTALS
 
-
-
-
-# PLGMControllerStateEvent - No parsed
-# SourceIdConfigurationEvent - No parsed
-# StartOfDayMarkerEvent - No parsed
 # + SensorGlucoseReading
-# CannulaFillDeliveredEvent CANNULA_FILL_DELIVERED
+# + CannulaFillDeliveredEvent CANNULA_FILL_DELIVERED
+# + NetworkDeviceConnectionEvent  NETWORK_DEVICE_CONNECTION
+
 # NGPHistoryEvent 0x2C BATTERY_INSERTED - No parsed
 # NGPHistoryEvent 0x36 REWIND - No parsed
 # NGPHistoryEvent 0x37 BATTERY_REMOVED - No parsed
-# + NetworkDeviceConnectionEvent  NETWORK_DEVICE_CONNECTION
 # NGPHistoryEvent 0xCE GLUCOSE_SENSOR_CHANGE - No parsed
 # NGPHistoryEvent 0xD4 OLD_HIGH_SENSOR_WARNING_LEVELS - No parsed
 # NGPHistoryEvent 0xD5 NEW_HIGH_SENSOR_WARNING_LEVELS - No parsed
+# PLGMControllerStateEvent - No parsed
+# SourceIdConfigurationEvent - No parsed
+# StartOfDayMarkerEvent - No parsed
+# SENSOR_GLUCOSE_GAP 0xCD - No parsed
+# EndOfDayMarkerEvent - No parsed
+# GeneralSensorSettingsChangeEvent - No parsed
 
-# SENSOR_GLUCOSE_GAP 0xCD
 #
 #       case NGPHistoryEvent.EVENT_TYPE.OLD_BOLUS_WIZARD_BG_TARGETS:
 #         return new OldBolusWizardBgTargetsEvent(this.eventData)
@@ -89,8 +90,6 @@ VERSION = "0.1"
 #         return new UserTimeDateEvent(this.eventData)
 #       case NGPHistoryEvent.EVENT_TYPE.LOW_RESERVOIR:
 #         return new LowReservoirEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
-#         return new ClosedLoopBloodGlucoseReadingEvent(this.eventData)
 
 
 
@@ -173,7 +172,11 @@ class NGPConstants:
         7: "Closed loop food bolus",
         8: "Closed loop BG correction and food bolus",
         -1: "NA",
+    }
 
+    CANNULA_FILL_TYPE ={
+        0: "Tubing fill",
+        1: "Cannula fill"
     }
 
 
@@ -205,16 +208,16 @@ class NGPConstants:
         0x0000: "Lost connection to sensor"
     }
 
-    BASAL_PATTERN_NAME = [
-        'Pattern 1',
-        'Pattern 2',
-        'Pattern 3',
-        'Pattern 4',
-        'Pattern 5',
-        'Workday',
-        'Day Off',
-        'Sick Day',
-    ]
+    BASAL_PATTERN_NAME = {
+        1: "Pattern 1",
+        2: "Pattern 2",
+        3: "Pattern 3",
+        4: "Pattern 4",
+        5: "Pattern 5",
+        6: "Workday",
+        7: "Day Off",
+        8: "Sick Day"
+    }
 
     class TEMP_BASAL_TYPE:
         ABSOLUTE = 0
@@ -497,15 +500,16 @@ class NGPHistoryEvent:
             return TempBasalProgrammedEvent(self.eventData)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.DUAL_BOLUS_PART_DELIVERED:
             return DualBolusPartDeliveredEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.SQUARE_BOLUS_PROGRAMMED:
+            return SquareBolusProgrammedEvent(self.eventData)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.SQUARE_BOLUS_DELIVERED:
             return SquareBolusDeliveredEvent(self.eventData)
-
-
-        # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_BASAL_PATTERN:
-        #     return OldBasalPatternEvent(self.eventData)
-        # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_BASAL_PATTERN:
-        #     return NewBasalPatternEvent(self.eventData)
-
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_BASAL_PATTERN:
+            return OldBasalPatternEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_BASAL_PATTERN:
+            return NewBasalPatternEvent(self.eventData)
+        # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
+        #     return ClosedLoopBloodGlucoseReadingEvent(self.eventData)
 
 
         return self
@@ -516,7 +520,11 @@ class BloodGlucoseReadingEvent(NGPHistoryEvent):
         NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
-        return '{0} BG:{1}, Source:{2}, bgUnits: {3}, calibrationFlag: {4}, meterSerialNumber: {5}, isCalibration: {6}'.format(NGPHistoryEvent.__shortstr__(self), self.bg_value, self.bg_source_text, self.bg_units, self.calibration_flag, self.meter_serial_number, self.is_calibration)
+        return ("{0} BG:{1}, Source:{2}, bgUnits: {3}, "
+                "calibrationFlag: {4}, meterSerialNumber: {5}, "
+                "isCalibration: {6}").format(NGPHistoryEvent.__shortstr__(self),
+                                             self.bg_value, self.bg_source_text, self.bg_units,
+                                             self.calibration_flag, self.meter_serial_number, self.is_calibration)
 
     @property
     def bg_value(self):
@@ -691,11 +699,11 @@ class BasalPatternSelectedEvent (NGPHistoryEvent):
 
     @property
     def old_pattern_name(self):
-        return NGPConstants.BASAL_PATTERN_NAME[self.old_pattern_number - 1]
+        return NGPConstants.BASAL_PATTERN_NAME[self.old_pattern_number]
 
     @property
     def new_pattern_name(self):
-        return NGPConstants.BASAL_PATTERN_NAME[self.new_pattern_number - 1]
+        return NGPConstants.BASAL_PATTERN_NAME[self.new_pattern_number]
 
 class TempBasalCompleteEvent (NGPHistoryEvent):
     def __init__(self, event_data):
@@ -749,14 +757,18 @@ class CannulaFillDeliveredEvent (NGPHistoryEvent):
         NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Type:{1}, Delivered:{2}, "
+        return ("{0} Type:{4} (1), Delivered:{2}, "
                 "Remaining:{3}").format(NGPHistoryEvent.__shortstr__(self),
                                       self.type, self.delivered,
-                                      self.remaining)
+                                      self.remaining, self.type_name)
 
     @property
     def type(self):
         return BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    @property
+    def type_name(self):
+        return NGPConstants.CANNULA_FILL_TYPE[self.type]
 
     @property
     def delivered(self):
@@ -764,18 +776,7 @@ class CannulaFillDeliveredEvent (NGPHistoryEvent):
 
     @property
     def remaining(self):
-        ii = 0
-        for i in range(len(self.eventData)):
-            if i >= 0x0B:
-                ii = i - 0x0B
-                print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))
-            else:
-                print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))
         return BinaryDataDecoder.read_uint32be(self.eventData, 0x10) / 10000.0
-
-
-
-
 
 class NormalBolusProgrammedEvent(BolusProgrammedEvent):
     def __init__(self, event_data):
@@ -947,17 +948,63 @@ class DualBolusPartDeliveredEvent(BolusProgrammedEvent):
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.eventData, 0x1F) / 10000.0
 
+
+class SquareBolusProgrammedEvent(BolusProgrammedEvent):
+    def __init__(self, event_data):
+        BolusProgrammedEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
+                "ProgrammedAmount: {5}, ProgrammedDuration:{6}(Minutes), "
+                "Active:{7}").format(BolusProgrammedEvent.__shortstr__(self),
+                            self.bolus_source_name, self.preset,
+                            self.bolus_ref, self.preset_bolus_number,
+                            self.programmed_amount, self.programmed_duration,
+                            self.active_insulin)
+
+    @property
+    def preset(self):
+        # NGPConstants.BOLUS_SOURCE
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    @property
+    def bolus_source_name(self):
+        return NGPConstants.BOLUS_SOURCE_NAME[self.preset]
+
+    @property
+    def bolus_ref(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0C)
+
+    @property
+    def preset_bolus_number(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0D)
+
+    @property
+    def programmed_amount(self):
+        return BinaryDataDecoder.read_uint32be(self.eventData, 0x0E) / 10000.0
+
+    @property
+    def programmed_duration(self):
+        return BinaryDataDecoder.read_uint16be(self.eventData, 0x12)
+
+    @property
+    def active_insulin(self):
+        return BinaryDataDecoder.read_uint32be(self.eventData, 0x14) / 10000.0
+
+
 class SquareBolusDeliveredEvent(BolusProgrammedEvent):
     def __init__(self, event_data):
         BolusProgrammedEvent.__init__(self, event_data)
 
     def __str__(self):
         return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
-               "ProgrammedAmount: {5}, DeliveredAmount:{6}, ProgrammedDuration:{7}(Minutes), DeliveredDuration:{8}(Minutes), Active:{9}").format(BolusProgrammedEvent.__shortstr__(self),
-                                                                                    self.bolus_source_name, self.preset,
-                                                                                    self.bolus_ref, self.preset_bolus_number,
-                                                                                    self.programmed_amount, self.delivered_amount,
-                                                                                    self.programmed_duration, self.delivered_duration, self.active_insulin)
+                "ProgrammedAmount: {5}, DeliveredAmount:{6}, "
+                "ProgrammedDuration:{7}(Minutes), DeliveredDuration:{8}(Minutes), "
+                "Active:{9}").format(BolusProgrammedEvent.__shortstr__(self),
+                                    self.bolus_source_name, self.preset,
+                                    self.bolus_ref, self.preset_bolus_number,
+                                    self.programmed_amount, self.delivered_amount,
+                                    self.programmed_duration, self.delivered_duration, self.active_insulin)
 
     @property
     def preset(self):
@@ -1038,6 +1085,80 @@ class TempBasalProgrammedEvent(BolusProgrammedEvent):
     @property
     def duration(self):
         return BinaryDataDecoder.read_uint16be(self.eventData, 0x12)
+
+class OldBasalPatternEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Pattern:{1} ({2}), SegmentsNumber:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                    self.pattern_name, self.pattern_number,
+                                                                    self.number_of_segments,self.segments)
+    @property
+    def pattern_number(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    @property
+    def pattern_name(self):
+        return NGPConstants.BASAL_PATTERN_NAME[self.pattern_number]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            rate = BinaryDataDecoder.read_uint32be(self.eventData, pos) / 10000.0
+            start = (BinaryDataDecoder.read_byte(self.eventData, pos + 4) * 30)
+            time = str(timedelta(minutes=start))
+            seg = {
+                "rate" : rate,
+                "start_minutes" : start,
+                "time_str" : time
+            }
+            segments.update({i+1 : seg })
+            pos = pos + 0x05
+        return segments
+
+class NewBasalPatternEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Pattern:{1} ({2}), SegmentsNumber:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                    self.pattern_name, self.pattern_number,
+                                                                    self.number_of_segments,self.segments)
+    @property
+    def pattern_number(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    @property
+    def pattern_name(self):
+        return NGPConstants.BASAL_PATTERN_NAME[self.pattern_number]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            rate = BinaryDataDecoder.read_uint32be(self.eventData, pos) / 10000.0
+            start = (BinaryDataDecoder.read_byte(self.eventData, pos + 4) * 30)
+            time = str(timedelta(minutes=start))
+            seg = {
+                "rate" : rate,
+                "start_minutes" : start,
+                "time_str" : time
+            }
+            segments.update({i+1 : seg })
+            pos = pos + 0x05
+        return segments
 
 
 
@@ -1308,7 +1429,7 @@ class BasalSegmentStartEvent(NGPHistoryEvent):
         NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
-        return "{0} Basal Rate:{1}, Pattern#:{2} '{4}', Segment#:{3}".format(NGPHistoryEvent.__shortstr__(self),
+        return "{0} Basal Rate:{1}, Pattern#:{4} ({2}), Segment#:{3}".format(NGPHistoryEvent.__shortstr__(self),
                                                                              self.rate,
                                                                              self.pattern_number,
                                                                              self.segment_number,
@@ -1330,7 +1451,7 @@ class BasalSegmentStartEvent(NGPHistoryEvent):
 
     @property
     def pattern_name(self):
-        return NGPConstants.BASAL_PATTERN_NAME[self.pattern_number - 1]
+        return NGPConstants.BASAL_PATTERN_NAME[self.pattern_number]
 
 class InsulinDeliveryStoppedEvent(NGPHistoryEvent):
     def __init__(self, event_data):
