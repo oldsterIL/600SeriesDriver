@@ -14,10 +14,7 @@ The projects are based on:
 
 ## Current state
 
-At the moment, this is a beta version. Unstable work is observed when reading historical data.
-
-<span style="color:red"><b>Attention!</b></span> Stable reading of historical data works only when the "DEBUG" logging level is set.
-I assume this is due to the timeouts for reading data from CNL.
+At the moment, this is a beta version.
 
 ## Plans
 

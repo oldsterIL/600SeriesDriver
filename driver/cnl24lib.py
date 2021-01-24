@@ -22,7 +22,7 @@ from datetime import timedelta
 VERSION = "0.1"
 
 # + AlarmClearedEvent
-# +- AlarmNotificationEvent
+# +- AlarmNotificationEvent ALARM_NOTIFICATION
 # + CalibrationCompleteEvent CALIBRATION_COMPLETE
 # + DailyTotalsEvent DAILY_TOTALS
 # + InsulinDeliveryRestartedEvent INSULIN_DELIVERY_RESTARTED
@@ -123,7 +123,6 @@ class NGPConstants:
         BG_EVENT_MARKER = 3
         SENSOR_CAL = 4
 
-    # Done
     BG_SOURCE_NAME = {
         1: "External meter",
         2: "Bolus wizard",
@@ -294,6 +293,62 @@ class NGPConstants:
         5: 'Low glucose auto resume - preset glucose reached',
         6: 'Low glucose manual resume via disable',
     }
+
+    #### Alarms ####
+    class ALARM_TYPE:
+        PUMP = 1
+        SENSOR = 2
+        REMINDER = 3
+        SMARTGUARD = 4
+        AUTOMODE = 5
+
+    ALARM_TYPE_NAME = {
+        1: "Pump Alert",
+        2: "Sensor Alert",
+        3: "Reminder",
+        4: "SmartGuard",
+        5: "Auto mode alert"
+    }
+
+    class ALARM_PRIORITY:
+        REDUNDANT = -9
+        LOWEST = -2
+        LOW = -1
+        NORMAL = 0
+        HIGH = 1
+        EMERGENCY = 2
+
+    ALARM_PRIORITY_NAME = {
+        -9: "Redundant",
+        -2: "Lowest",
+        -1: "Low",
+         0: "Normal",
+         1: "High",
+         2: "Emergency",
+    }
+
+    ALARM_MESSAGE_NAME = {
+        6   : "Power loss|AA battery was removed for more than 10 min or power was lost. Select OK to re-enter time and date.",
+        58  : "Battery Failed|Insert a new AA battery.",
+        84  : "Insert Battery|Delivery stopped. Insert a new battery now.",
+        104 : "Low battery Pump|Replace battery soon.",
+        117 : "Active Insulin cleared|Any Active Insulin amount has been cleared.",
+        799 : "Sensor warm-up started|Warm-up takes up to 2 hours. you will be notified when calibration is needed.",
+        775 : "Calibrate Now|Check BG and calibrate sensor.",
+        776 : "Calibration not accepted|Recheck BG and calibrate sensor.",
+        790 : "Cannot find sensor signal|Disconnect and reconnect transmitter. Notice if transmitter light blinks.",
+        791 : "Sensor signal not found|Did transmitter light blink when connected to sensor?",
+        798 : "Sensor connected|If new sensor, select Start New. If not, select Reconnect.",
+        802 : "Alert On Low {0} ({1})|Low sensor glucose. Check BG.",
+        803 : "Alert On Low while suspended|Low sensor glucose. Insulin delivery suspended. Check BG.",
+        809 : "Suspend On Low|Delivery stopped. Sensor glucose {0} ({1}). Check BG.",
+        812 : "Suspend Before Low|Patient unresponsive, medical device emergency.",
+        816 : "Alert On High {0} ({1})|High sensor glucose. Check BG.",
+        817 : "Alert Before High {0} ({1})|Sensor glucose approaching High Limit. Check BG.",
+
+    }
+
+
 
 class NGPHistoryEvent:
     class EVENT_TYPE:
@@ -520,11 +575,12 @@ class BloodGlucoseReadingEvent(NGPHistoryEvent):
         NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} BG:{1}, Source:{2}, bgUnits: {3}, "
+        return ("{0} BG:{1} ({9}), Source:{2} ({7}), bgUnits:{8} ({3}), "
                 "calibrationFlag: {4}, meterSerialNumber: {5}, "
                 "isCalibration: {6}").format(NGPHistoryEvent.__shortstr__(self),
-                                             self.bg_value, self.bg_source_text, self.bg_units,
-                                             self.calibration_flag, self.meter_serial_number, self.is_calibration)
+                                             self.bg_value, self.bg_source_name, self.bg_units,
+                                             self.calibration_flag, self.meter_serial_number, self.is_calibration,
+                                             self.bg_source, self.bg_units_name, self.bg_value_mmol)
 
     @property
     def bg_value(self):
@@ -532,16 +588,24 @@ class BloodGlucoseReadingEvent(NGPHistoryEvent):
         return BinaryDataDecoder.read_uint16be(self.eventData, 0x0C)
 
     @property
+    def bg_value_mmol(self):
+        return round(self.bg_value / NGPConstants.BG_UNITS.MMOLXLFACTOR, 1)
+
+    @property
     def bg_source(self):
         return BinaryDataDecoder.read_byte(self.eventData, 0x0E)
 
     @property
-    def bg_source_text(self):
+    def bg_source_name(self):
         return NGPConstants.BG_SOURCE_NAME[self.bg_source]
 
     @property
     def bg_units(self):
         return BinaryDataDecoder.read_byte(self.eventData, 0x0B) & 1
+
+    @property
+    def bg_units_name(self):
+        return NGPConstants.BG_UNITS_NAME[self.bg_units]
 
     @property
     def calibration_flag(self):
@@ -869,19 +933,6 @@ class DualBolusProgrammedEvent(BolusProgrammedEvent):
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.eventData, 0x18) / 10000.0
 
-    # # TODO its try ???
-    # def post_process(self, history_events):
-    #     matches = [x for x in history_events
-    #                if isinstance(x, BolusWizardEstimateEvent)
-    #                and x.timestamp < self.timestamp
-    #                and self.timestamp - x.timestamp < timedelta(minutes=5)
-    #                and x.final_estimate == self.normal_programmed_amount]
-    #     if len(matches) == 1:
-    #         self.bolusWizardEvent = matches[0]
-    #         self.bolusWizardEvent.programmed = True
-
-
-
 class DualBolusPartDeliveredEvent(BolusProgrammedEvent):
     def __init__(self, event_data):
         BolusProgrammedEvent.__init__(self, event_data)
@@ -948,7 +999,6 @@ class DualBolusPartDeliveredEvent(BolusProgrammedEvent):
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.eventData, 0x1F) / 10000.0
 
-
 class SquareBolusProgrammedEvent(BolusProgrammedEvent):
     def __init__(self, event_data):
         BolusProgrammedEvent.__init__(self, event_data)
@@ -990,7 +1040,6 @@ class SquareBolusProgrammedEvent(BolusProgrammedEvent):
     @property
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.eventData, 0x14) / 10000.0
-
 
 class SquareBolusDeliveredEvent(BolusProgrammedEvent):
     def __init__(self, event_data):
@@ -1042,7 +1091,6 @@ class SquareBolusDeliveredEvent(BolusProgrammedEvent):
     @property
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.eventData, 0x1A) / 10000.0
-
 
 class TempBasalProgrammedEvent(BolusProgrammedEvent):
     def __init__(self, event_data):
@@ -1159,8 +1207,6 @@ class NewBasalPatternEvent(NGPHistoryEvent):
             segments.update({i+1 : seg })
             pos = pos + 0x05
         return segments
-
-
 
 class SensorGlucoseReadingsEvent(NGPHistoryEvent):
     def __init__(self, event_data):
@@ -1497,10 +1543,9 @@ class PLGMControllerStateEvent(NGPHistoryEvent):
 
 class CalibrationCompleteEvent(NGPHistoryEvent):
     def __str__(self):
-        return '{0} calFactor: {1}, bgTarget: {2}'.format(NGPHistoryEvent.__shortstr__(self),
+        return '{0} calFactor:{1}, bgTarget:{2} ({3})'.format(NGPHistoryEvent.__shortstr__(self),
                                                           self.cal_factor,
-                                                          self.bg_target
-                                                          )
+                                                          self.bg_target, self.bg_target_mmol)
 
     @property
     def cal_factor(self):
@@ -1510,15 +1555,18 @@ class CalibrationCompleteEvent(NGPHistoryEvent):
     def bg_target(self):
         return BinaryDataDecoder.read_uint16be(self.eventData, 0x0D)
 
+    @property
+    def bg_target_mmol(self):
+        return round(self.bg_target / NGPConstants.BG_UNITS.MMOLXLFACTOR,1)
+
 class AlarmNotificationEvent(NGPHistoryEvent):
     def __str__(self):
-        return '{0}, faultNumber:{1}, mode:{2} extra:{3} history:{4} data:{5}'.format(NGPHistoryEvent.__shortstr__(self),
+        return '{0}, Code:{1}, Mode:{2} Extra:{3} History:{4} String:{5}'.format(NGPHistoryEvent.__shortstr__(self),
                                                                                       self.fault_number,
                                                                                       self.notification_mode,
                                                                                       self.extra_data,
                                                                                       self.alarm_history,
-                                                                                      binascii.hexlify(self.alarm_data))
-
+                                                                                      self.alarm_string)
 
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
@@ -1542,6 +1590,142 @@ class AlarmNotificationEvent(NGPHistoryEvent):
     @property
     def alarm_data(self):
         return self.eventData[0x13:0x1D]
+
+    @property
+    def alarm_string(self):
+
+        if self.fault_number == 6:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 58:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 84:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 104:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 117:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+
+        if self.fault_number == 799:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 775:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 776:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 790:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 791:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        elif self.fault_number == 802:
+            bg = BinaryDataDecoder.read_uint16be(self.alarm_data, 0x01)
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            if bg < 0x300:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+            else:
+                return "[Error data]"
+
+        elif self.fault_number == 803:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        elif self.fault_number == 809:
+            bg = BinaryDataDecoder.read_uint16be(self.alarm_data, 0x01)
+            self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            if bg < 0x300:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+
+            else:
+                return "[Error data]"
+
+        if self.fault_number == 812:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        if self.fault_number == 798:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+
+        elif self.fault_number == 816:
+            bg = BinaryDataDecoder.read_uint16be(self.alarm_data, 0x01)
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            if bg < 0x300:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+            else:
+                return "[Error data]"
+
+        elif self.fault_number == 817:
+            bg = self.glucose(0x01)
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            if bg:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+            else:
+                return "[Error data]"
+
+
+        else:
+            return "[Don't parse data]"
+
+    def glucose(self, offset):
+        bg = BinaryDataDecoder.read_uint16be(self.alarm_data, offset)
+        if bg < 0x300:
+            return bg
+        else:
+            return False
+
+    def format(self, type, priority, str):
+
+        string = NGPConstants.ALARM_TYPE_NAME[type] + ", " + NGPConstants.ALARM_PRIORITY_NAME[priority] + ": "
+        msg = str.split("|")
+        string = string + msg[0]
+        if len(msg[1]) != 0:
+            string = string + "~" + msg[1]
+
+        return string
+
 
 class AlarmClearedEvent(NGPHistoryEvent):
     def __str__(self):
@@ -2369,8 +2553,8 @@ class MedtronicReceiveMessage( MedtronicMessage ):
 
         response.response_payload = decrypted_response_payload[0:-2]
 
-        logger.info("### DECRYPTED PAYLOAD:")
-        logger.info(binascii.hexlify(response.response_payload))
+        # logger.debug("### DECRYPTED PAYLOAD:")
+        # logger.debug(binascii.hexlify(response.response_payload))
 
         if len(response.response_payload) > 2:
             checksum = struct.unpack( '>H', decrypted_response_payload[-2:])[0]
@@ -2473,7 +2657,6 @@ class AckMultipacketRequestMessage( MedtronicSendMessage ):
     def __init__(self, session, segment_command):
         payload = struct.pack( '>H', segment_command)
         MedtronicSendMessage.__init__(self, ComDCommand.ACK_MULTIPACKET_COMMAND, session, payload)
-
 
 class MultipacketResendPacketsMessage( MedtronicSendMessage ):
     def __init__(self, session, packet_number, missing):
@@ -3053,7 +3236,6 @@ class InitMultiPacketSegment ( MedtronicReceiveMessage ):
     def packets_to_fetch(self): # packetsToFetch
         return struct.unpack( '>H', self.response_payload[0x0B:0x0D] )[0]
 
-
 class MultiPacketSegment( MedtronicReceiveMessage ):
 
     @classmethod
@@ -3075,8 +3257,6 @@ class MultiPacketSegment( MedtronicReceiveMessage ):
     def payload( self ):
         return self.response_payload[0x05:]
 
-
-
 class StatusEHSMmode ( MedtronicReceiveMessage ):
     @classmethod
     def decode( cls, message, session ):
@@ -3091,7 +3271,6 @@ class StatusEHSMmode ( MedtronicReceiveMessage ):
     @property
     def ehs_mmode(self): # EHSMmode
         return ( struct.unpack( '>B', self.response_payload[0x03:0x04] )[0] & 1)
-
 
 class NakCommand ( MedtronicReceiveMessage ):
     @classmethod
@@ -3262,10 +3441,6 @@ class PumpBasalPatternResponseMessage( MedtronicReceiveMessage ):
     #     date_time_data = self.encoded_datetime
     #     return DateTimeHelper.decode_date_time_offset(date_time_data)
 
-
-
-
-
 class Medtronic600SeriesDriver( object ):
     USB_BLOCKSIZE = 64
     USB_VID = 0x1a79
@@ -3349,11 +3524,11 @@ class Medtronic600SeriesDriver( object ):
         expected_size = 0
         first = True
 
-        logger.info('# Read message, timeout: {0}'.format(timeout_ms))
+        logger.debug('# Read message, timeout: {0}'.format(timeout_ms))
 
         while first or (bytes_read > 0 and payload_size == self.USB_BLOCKSIZE-4 and len(payload) != expected_size):
-            t = timeout_ms if first else 10000
-            logger.info("timeout = {0}".format(t))
+            t = timeout_ms if first else 1500
+            logger.debug("timeout = {0}".format(t))
             data = self.device.read( self.USB_BLOCKSIZE, timeout_ms = t )
             first = False
             if data:
@@ -3439,7 +3614,18 @@ class Medtronic600SeriesDriver( object ):
 
         logger.debug("## readResponse0x80")
 
-        payload = self.read_message(timeout_ms)
+        read_message_completed = False
+        payload = None
+        while read_message_completed != True:
+            payload = self.read_message(timeout_ms)
+            if len(payload) == 0x2E:
+                # seen during multipacket transfers, may indicate a full CNL receive buffer
+                if payload[0x24] == 0x06 and (payload[0x25] & 0xFF) == 0x88 and payload[0x26] == 0x00 and payload[0x27] == 0x65:
+                    logger.debug("## Full CNL receive buffer, read again")
+                else:
+                    read_message_completed = True
+            else:
+                read_message_completed = True
 
         # minimum 0x80 message size?
         if len(payload) <= 0x21:
@@ -3767,7 +3953,6 @@ class Medtronic600SeriesDriver( object ):
                 logger.warning("## getMedtronicMessage: waiting for message of [{0}], got 0x{1:x}".format(''.join('%04x ' % i for i in expected_message_types), med_message.message_type))
         return med_message
 
-
     def get_pump_time(self):
         logger.info("# Get Pump Time")
         mt_message = PumpTimeRequestMessage( self.session )
@@ -3881,8 +4066,6 @@ class Medtronic600SeriesDriver( object ):
                             if timeout < Medtronic600SeriesDriver.MULTIPACKET_TIMEOUT_MS:
                                 timeout = Medtronic600SeriesDriver.MULTIPACKET_TIMEOUT_MS
 
-                        logger.info(">>>>>>>>>>>>>>>>>>>>>> Send, timeout:{0}".format(timeout))
-
                         decrypted = self.get_medtronic_message([ComDCommand.INITIATE_MULTIPACKET_TRANSFER,
                                                                 ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION,
                                                                 ComDCommand.MULTIPACKET_RESEND_PACKETS,
@@ -3910,13 +4093,13 @@ class Medtronic600SeriesDriver( object ):
                         break
 
             else:
-                logger.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>> Send ")
                 decrypted = self.get_medtronic_message([ComDCommand.INITIATE_MULTIPACKET_TRANSFER,
                                                                ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION,
                                                                ComDCommand.MULTIPACKET_RESEND_PACKETS,
                                                                ComDCommand.END_HISTORY_TRANSMISSION,
                                                                ComDCommand.HIGH_SPEED_MODE_COMMAND,
                                                                ComDCommand.NAK_COMMAND])
+
 
             if decrypted.message_type == ComDCommand.NAK_COMMAND:
                 self.clear_message()
@@ -3947,7 +4130,7 @@ class Medtronic600SeriesDriver( object ):
 
                 expected_segments = multipacket_session.packets_to_fetch
 
-                logger.debug("------------------------ Start Multi -----------------------")
+                logger.debug("Start multipacket session")
 
             elif decrypted.message_type == ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION:
                 logger.debug("## getPumpHistory got MULTIPACKET_SEGMENT_TRANSMISSION")

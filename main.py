@@ -3,7 +3,7 @@
 
 import logging
 # logging.basicConfig has to be before astm import, otherwise logs don't appear
-logging.basicConfig(format='%(asctime)s %(levelname)s [%(name)s] %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(levelname)s [%(name)s] %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 # Log Level:
 # CRITICAL
@@ -59,7 +59,7 @@ if __name__ == '__main__':
                                 logger.info("Pump time drift: {0}".format(mt.pump_time_drift))
 
                                 # !!! Max timedelta = 10 days
-                                start_date = datetime.datetime.now() - datetime.timedelta(days=5)
+                                start_date = datetime.datetime.now() - datetime.timedelta(days=1)
                                 # TODO find a solution how to set the time to the nearest minute
                                 # start_date = datetime.datetime.now() - datetime.timedelta(minutes=30)
                                 end_date = datetime.datetime.max
