@@ -62,6 +62,7 @@ if __name__ == '__main__':
                                 start_date = datetime.datetime.now() - datetime.timedelta(days=1)
                                 # TODO find a solution how to set the time to the nearest minute
                                 # start_date = datetime.datetime.now() - datetime.timedelta(minutes=30)
+                                # end_date = datetime.datetime.now() - datetime.timedelta(days=70)
                                 end_date = datetime.datetime.max
 
                                 # Sensor history = cnl24lib.HistoryDataType.SENSOR_DATA

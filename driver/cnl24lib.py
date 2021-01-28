@@ -21,45 +21,24 @@ from datetime import timedelta
 
 VERSION = "0.1"
 
-# + AlarmClearedEvent
-# +- AlarmNotificationEvent ALARM_NOTIFICATION
-# + CalibrationCompleteEvent CALIBRATION_COMPLETE
-# + DailyTotalsEvent DAILY_TOTALS
-# + InsulinDeliveryRestartedEvent INSULIN_DELIVERY_RESTARTED
-# + InsulinDeliveryStoppedEvent INSULIN_DELIVERY_STOPPED
-
-##### Bolus #####
-# + NormalBolusProgrammedEvent NORMAL_BOLUS_PROGRAMMED
-# + NormalBolusDeliveredEvent NORMAL_BOLUS_DELIVERED
-# + DualBolusProgrammedEvent DUAL_BOLUS_PROGRAMMED
-# + DualBolusPartDeliveredEvent DUAL_BOLUS_PART_DELIVERED
-# + SquareBolusDeliveredEvent SQUARE_BOLUS_DELIVERED
-# + SquareBolusProgrammedEvent SQUARE_BOLUS_PROGRAMMED
-# NGPHistoryEvent 0x27 BOLUS_CANCELED - No parsed
-# + BolusWizardEstimateEvent BOLUS_WIZARD_ESTIMATE
 # MEAL_WIZARD_ESTIMATE
-##### Bolus #####
-
-##### Basal #####
-# + TempBasalProgrammedEvent  TEMP_BASAL_PROGRAMMED
-# + BasalSegmentStartEvent  BASAL_SEGMENT_START
-# + BasalPatternSelectedEvent BASAL_PATTERN_SELECTED
-# + TempBasalCompleteEvent  TEMP_BASAL_COMPLETE
-# + OldBasalPatternEvent  OLD_BASAL_PATTERN
-# + NewBasalPatternEvent  NEW_BASAL_PATTERN
-##### Basal #####
-
-# + BloodGlucoseReadingEvent BG_READING
-# ClosedLoopBloodGlucoseReadingEvent CLOSED_LOOP_BG_READING:
-
+# OLD_BOLUS_WIZARD_INSULIN_SENSITIVITY
+# NEW_BOLUS_WIZARD_INSULIN_SENSITIVITY
+# OLD_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS
+# NEW_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS
+# OLD_BOLUS_WIZARD_BG_TARGETS
+# NEW_BOLUS_WIZARD_BG_TARGETS
+# CLOSED_LOOP_TRANSITION
 # CLOSED_LOOP_DAILY_TOTALS
-
-# + SensorGlucoseReading
-# + CannulaFillDeliveredEvent CANNULA_FILL_DELIVERED
-# + NetworkDeviceConnectionEvent  NETWORK_DEVICE_CONNECTION
+# FOOD_EVENT_MARKER
+# EXERCISE_EVENT_MARKER
+# INJECTION_EVENT_MARKER
+# CLOSED_LOOP_ALARM_AUTO_CLEARED
+# ClosedLoopBloodGlucoseReadingEvent CLOSED_LOOP_BG_READING
 
 # NGPHistoryEvent 0x2C BATTERY_INSERTED - No parsed
 # NGPHistoryEvent 0x36 REWIND - No parsed
+# NGPHistoryEvent 0x27 BOLUS_CANCELED - No parsed
 # NGPHistoryEvent 0x37 BATTERY_REMOVED - No parsed
 # NGPHistoryEvent 0xCE GLUCOSE_SENSOR_CHANGE - No parsed
 # NGPHistoryEvent 0xD4 OLD_HIGH_SENSOR_WARNING_LEVELS - No parsed
@@ -70,29 +49,6 @@ VERSION = "0.1"
 # SENSOR_GLUCOSE_GAP 0xCD - No parsed
 # EndOfDayMarkerEvent - No parsed
 # GeneralSensorSettingsChangeEvent - No parsed
-
-#
-#       case NGPHistoryEvent.EVENT_TYPE.OLD_BOLUS_WIZARD_BG_TARGETS:
-#         return new OldBolusWizardBgTargetsEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.NEW_BOLUS_WIZARD_BG_TARGETS:
-#         return new NewBolusWizardBgTargetsEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.OLD_BOLUS_WIZARD_INSULIN_SENSITIVITY:
-#         return new OldBolusWizardInsulinSensitivityEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.NEW_BOLUS_WIZARD_INSULIN_SENSITIVITY:
-#         return new NewBolusWizardInsulinSensitivityEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.OLD_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS:
-#         return new OldBolusWizardCarbsRatiosEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.NEW_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS:
-#         return new NewBolusWizardCarbsRatiosEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.BOLUS_WIZARD_SETTINGS_SUMMARY:
-#         return this
-#       case NGPHistoryEvent.EVENT_TYPE.USER_TIME_DATE_CHANGE:
-#         return new UserTimeDateEvent(this.eventData)
-#       case NGPHistoryEvent.EVENT_TYPE.LOW_RESERVOIR:
-#         return new LowReservoirEvent(this.eventData)
-
-
-
 
 
 ################# HISTORY ######################
@@ -328,24 +284,56 @@ class NGPConstants:
     }
 
     ALARM_MESSAGE_NAME = {
+        3   : "Pump error 3|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
+        4   : "Pump error 4|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
         6   : "Power loss|AA battery was removed for more than 10 min or power was lost. Select OK to re-enter time and date.",
+        7   : "Insulin flow blocked|Check BG. Consider injection and testing ketones. Change reservoir and infusion set.",
+        8   : "Insulin flow blocked|Estimated 0U insulin in reservoir. Change reservoir and infusion set.",
+        11  : "Replace battery now|Delivery stopped. Battery must be replaced to resume delivery.",
+        15  : "Pump error 15|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
+        53  : "Pump error 53|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
+        54  : "Pump error 54|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
         58  : "Battery Failed|Insert a new AA battery.",
+        61  : "Stuck button|Button pressed for more than 3 minutes",
+        66  : "No reservoir detected|Rewind before loading reservoir.",
+        70  : "Fill Cannula?|Select Fill to fill cannula or select Done if not needed.",
+        71  : "Max Fill reached|{0}. Did you see drops at the end of tubing?",
+        72  : "Max Fill reached|{0}. Remove reservoir and select Rewind to restart New Reservoir procedure.",
+        73  : "Replace battery|Battery life less than 30 minutes. To ensure insulin delivery, replace battery now.",
         84  : "Insert Battery|Delivery stopped. Insert a new battery now.",
+        100 : "Bolus Not Delivered|Bolus entry timed out before delivery. If bolus intended, enter values again.",
         104 : "Low battery Pump|Replace battery soon.",
+        105 : "Low Reservoir {0} remain|Change reservoir soon.",
+        106 : "Low Reservoir {0} hours remain|Change reservoir soon.",
+        107 : "Missed Meal Bolus|No bolus delivered during the time set in the reminder.",
+        108 : "Reminder|{0} at {1}",
+        109 : "Set Change Reminder: {0} since the last set change|Time to change reservoir and infusion set.",
+        110: "Sensor alert occurred|Check Alarm History for silenced alerts.",
+        113: "Reservoir estimate at 0U|To ensure insulin delivery change reservoir.",
         117 : "Active Insulin cleared|Any Active Insulin amount has been cleared.",
-        799 : "Sensor warm-up started|Warm-up takes up to 2 hours. you will be notified when calibration is needed.",
         775 : "Calibrate Now|Check BG and calibrate sensor.",
         776 : "Calibration not accepted|Recheck BG and calibrate sensor.",
+        780 : "Lost sensor signal|Move pump closer to transmitter. May take 15 minutes to find signal.",
+        781 : "Possible signal interference|Move away from electronic devices. May take 15 minutes to find signal.",
+        784 : "Rise Alert|Sensor glucose rising rapidly.",
         790 : "Cannot find sensor signal|Disconnect and reconnect transmitter. Notice if transmitter light blinks.",
         791 : "Sensor signal not found|Did transmitter light blink when connected to sensor?",
-        798 : "Sensor connected|If new sensor, select Start New. If not, select Reconnect.",
+        794: "Sensor expired|Insert new sensor.",
+        795: "Check connection|Ensure transmitter and sensor connection is secure.",
+        796: "Sensor signal not found|See User Guide.",
+        797: "Sensor connected|Start new sensor.",
+        798: "Sensor connected|If new sensor, select Start New. If not, select Reconnect.",
+        799: "Sensor warm-up started|Warm-up takes up to 2 hours. you will be notified when calibration is needed.",
+        801 : "SG value not available|If problem continues, see User Guide.",
         802 : "Alert On Low {0} ({1})|Low sensor glucose. Check BG.",
         803 : "Alert On Low while suspended|Low sensor glucose. Insulin delivery suspended. Check BG.",
+        805 : "Alert Before Low {0} ({1})|Sensor glucose approaching Low Limit. Check BG.",
         809 : "Suspend On Low|Delivery stopped. Sensor glucose {0} ({1}). Check BG.",
         812 : "Suspend Before Low|Patient unresponsive, medical device emergency.",
         816 : "Alert On High {0} ({1})|High sensor glucose. Check BG.",
         817 : "Alert Before High {0} ({1})|Sensor glucose approaching High Limit. Check BG.",
-
+        869 : "Calibrate by {0}|Check BG and calibrate sensor to continue receiving sensor information.",
+        870 : "Low Transmitter Battery|Recharge transmitter within 24 hours.",
     }
 
 
@@ -563,6 +551,16 @@ class NGPHistoryEvent:
             return OldBasalPatternEvent(self.eventData)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_BASAL_PATTERN:
             return NewBasalPatternEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.LOW_RESERVOIR:
+            return LowReservoirEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.DISPLAY_OPTION_CHANGE:
+            return DisplayOptionChangeEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.AIRPLANE_MODE:
+            return AirplaneModeEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.TIME_RESET:
+            return TimeResetEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.USER_TIME_DATE_CHANGE:
+            return UserTimeDateChangeEvent(self.eventData)
         # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
         #     return ClosedLoopBloodGlucoseReadingEvent(self.eventData)
 
@@ -1208,6 +1206,114 @@ class NewBasalPatternEvent(NGPHistoryEvent):
             pos = pos + 0x05
         return segments
 
+class LowReservoirEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Type:{1}, Hours:{2}, Minutes:{3}, Units:{4}").format(NGPHistoryEvent.__shortstr__(self),
+                                                                          self.warning_type, self.hours_remaining,
+                                                                          self.minutes_remaining,self.units_remaining)
+
+    @property
+    def warning_type(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    # TODO change time format
+    @property
+    def hours_remaining(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0C)
+
+    @property
+    def minutes_remaining(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0D)
+
+    @property
+    def units_remaining(self):
+        return BinaryDataDecoder.read_uint32be(self.eventData, 0x0E) / 10000.0
+
+class DisplayOptionChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} OldBrightness:{1}, NewBrightness:{2}, OldBacklight:{3} Sec, NewBacklight:{4} Sec").format(
+                    NGPHistoryEvent.__shortstr__(self),
+                    self.old_brightness_level, self.new_brightness_level, self.old_backlight_seconds, self.new_backlight_seconds)
+
+    @property
+    def old_brightness_level(self):
+        return "Auto" if BinaryDataDecoder.read_byte(self.eventData, 0x0B) == 0 else BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    # TODO change time format
+    @property
+    def old_backlight_seconds(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0D)
+
+    @property
+    def new_brightness_level(self):
+        return "Auto" if BinaryDataDecoder.read_byte(self.eventData, 0x0F) == 0 else BinaryDataDecoder.read_byte(self.eventData, 0x0F)
+
+    # TODO change time format
+    @property
+    def new_backlight_seconds(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x11)
+
+
+class AirplaneModeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Status:{1} ({2})").format(NGPHistoryEvent.__shortstr__(self),self.switch_name, self.switch)
+
+    @property
+    def switch(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    @property
+    def switch_name(self):
+        return "On" if self.switch == 1 else "Off"
+
+class TimeResetEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} NewDate:{1}").format(NGPHistoryEvent.__shortstr__(self),self.date)
+
+    @property
+    def datetime(self):
+        return BinaryDataDecoder.read_uint64be(self.eventData, 0x0B)
+
+    @property
+    def date(self):
+        return DateTimeHelper.decode_date_time(self.datetime)
+
+    @property
+    def offset(self):
+        return DateTimeHelper.decode_date_time_offset(self.datetime)
+
+class UserTimeDateChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} NewDate:{1}").format(NGPHistoryEvent.__shortstr__(self),self.date)
+
+    @property
+    def datetime(self):
+        return BinaryDataDecoder.read_uint64be(self.eventData, 0x0B)
+
+    @property
+    def date(self):
+        return DateTimeHelper.decode_date_time(self.datetime)
+
+    @property
+    def offset(self):
+        return DateTimeHelper.decode_date_time_offset(self.datetime)
+
+
 class SensorGlucoseReadingsEvent(NGPHistoryEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
@@ -1559,6 +1665,373 @@ class CalibrationCompleteEvent(NGPHistoryEvent):
     def bg_target_mmol(self):
         return round(self.bg_target / NGPConstants.BG_UNITS.MMOLXLFACTOR,1)
 
+
+class PumpEvent():
+    def __init__(self, code,data):
+        self.code = code
+        self.data = data
+        self.type = None
+        self.priority = None
+        self.insulin = None
+        self.time = None
+        self.list = None
+        self.bg = None
+
+    # Alarms:
+    # #103 alarmData: HM-------- HM=Hours(hour,min)
+    # #105 alarmData: UUUU------ U=Insulin(div 10000)
+    # #108 alarmData: HMR------- HM=Clock(hour,min) R=Personal Reminder(1/2/3/4/5/6/7=BG Check/8=Medication)
+    # #109 alarmData: X--------- X=Days (days since last set change)
+    # #802 alarmData: XSS-HMSS-- X=Snooze(mins) S=SGV(mgdl) HM=Clock(hour,min)
+    # #805 alarmData: XSS-HMSS-- X=Snooze(mins) S=SGV(mgdl) HM=Clock(hour,min)
+    # #816 alarmData: XSS------- X=Snooze(mins) S=SGV(mgdl)
+    # #817 alarmData: XSS------- X=Before(mins) S=SGV(mgdl)
+    # #869 alarmData: HM-------- HM=Clock(hour,min)
+
+    def alarm_string(self):
+        code = self.code
+        data = self.data
+
+        if code == 3:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 4:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 6:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 7:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 8:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 11:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 15:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 53:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 54:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 58:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 61:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 66:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 70:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 71:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            insulin = self.get_insulin(0, data)
+            self.insulin = insulin
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).format(insulin))
+
+        if code == 72:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            insulin = self.get_insulin(0, data)
+            self.insulin = insulin
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).format(insulin))
+
+        if code == 73:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 84:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 100:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 104:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 105:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            insulin = self.get_insulin(0, data)
+            self.insulin = insulin
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).format(insulin))
+
+        # TODO Fix me, add "hours"
+        # if code == 106:
+        #     self.type = NGPConstants.ALARM_TYPE.PUMP
+        #     self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+        #     return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 107:
+            self.type = NGPConstants.ALARM_TYPE.REMINDER
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 108:
+            self.type = NGPConstants.ALARM_TYPE.REMINDER
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+
+            str_list = self.get_list(2,data, "Personal 1|Personal 2|Personal 3|Personal 4|Personal 5|Personal 6|BG Check|Medication")
+            time = self.get_clock(0,data)
+            # TODO Add time to output (self.time)
+            self.time = time
+            self.list = str_list
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).
+                               format(str_list, time))
+
+        if code == 109:
+            self.type = NGPConstants.ALARM_TYPE.REMINDER
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            str_list = self.get_list(0,data, "One day|Two days|Three days")
+            self.list = str_list
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).
+                               format(str_list))
+
+        if code == 110:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 113:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 117:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 775:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 776:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 780:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 781:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 784:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 790:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 791:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 794:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 795:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 796:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 797:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 798:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 799:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 801:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+
+        elif code == 802:
+            bg = self.get_glucose(0x01,data)
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            if bg < 0x300:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[code]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+            else:
+                return "[Error data]"
+
+        elif code == 803:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        elif code == 805:
+            bg = self.get_glucose(0x01,data)
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            if bg < 0x300:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[code]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+            else:
+                return "[Error data]"
+
+        elif code == 809:
+            bg = self.get_glucose(0x01,data)
+            self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            if bg < 0x300:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[code]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+
+            else:
+                return "[Error data]"
+
+        if code == 812:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        elif code == 816:
+            bg = self.get_glucose(0x01,data)
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            if bg < 0x300:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[code]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+            else:
+                return "[Error data]"
+
+        elif code == 817:
+            bg = self.get_glucose(0x01,data)
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            if bg:
+                self.bg = bg
+                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[code]).
+                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
+            else:
+                return "[Error data]"
+
+        elif code == 869:
+            self.type = NGPConstants.ALARM_TYPE.REMINDER
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+
+            # TODO
+            time = self.get_clock(0,data)
+            self.time = time
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).format(time))
+
+        elif code == 870:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        else:
+            return ("[Don't parse data]: {0}").format(binascii.hexlify(data))
+
+    def get_glucose(self, offset,data):
+        bg = BinaryDataDecoder.read_uint16be(data, offset)
+        if bg < 0x300:
+            return bg
+        else:
+            return False
+
+    def get_list(self,offset, data, list_str):
+        index = BinaryDataDecoder.read_byte(data, offset) - 1
+        list = list_str.split("|")
+        if index > 0 and index <= len(list):
+            return list[index]
+        else:
+            return "~"
+
+    def get_clock(self,offset,data):
+        hour_in_minutes = (BinaryDataDecoder.read_byte(data, offset) & 0xFF ) * 60
+        minutes = BinaryDataDecoder.read_byte(data, offset + 0x01) & 0xFF
+        minutes = minutes + hour_in_minutes
+        time = str(timedelta(minutes=minutes))
+        return time
+
+    def get_insulin(self, offset, data):
+        return  BinaryDataDecoder.read_uint32be(data, offset) / 10000.0
+
+    def format(self, type, priority, str):
+
+        string = NGPConstants.ALARM_TYPE_NAME[type] + ", " + NGPConstants.ALARM_PRIORITY_NAME[priority] + ": "
+        msg = str.split("|")
+        string = string + msg[0]
+        if len(msg) >=2 :
+            string = string + "~" + msg[1]
+        return string
+
 class AlarmNotificationEvent(NGPHistoryEvent):
     def __str__(self):
         return '{0}, Code:{1}, Mode:{2} Extra:{3} History:{4} String:{5}'.format(NGPHistoryEvent.__shortstr__(self),
@@ -1593,143 +2066,22 @@ class AlarmNotificationEvent(NGPHistoryEvent):
 
     @property
     def alarm_string(self):
+        alarm = PumpEvent(self.fault_number, self.alarm_data)
+        alarm_str = alarm.alarm_string()
 
-        if self.fault_number == 6:
-            self.type = NGPConstants.ALARM_TYPE.PUMP
-            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
-            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
+        self.type = alarm.type
+        self.priority = alarm.priority
+        self.insulin = alarm.insulin
+        self.time = alarm.time
+        self.list = alarm.list
+        self.bg = alarm.bg
 
-        if self.fault_number == 58:
-            self.type = NGPConstants.ALARM_TYPE.PUMP
-            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
-            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 84:
-            self.type = NGPConstants.ALARM_TYPE.PUMP
-            self.priority = NGPConstants.ALARM_PRIORITY.LOW
-            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 104:
-            self.type = NGPConstants.ALARM_TYPE.PUMP
-            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
-            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 117:
-            self.type = NGPConstants.ALARM_TYPE.PUMP
-            self.priority = NGPConstants.ALARM_PRIORITY.LOW
-            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-
-        if self.fault_number == 799:
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
-            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 775:
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
-            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 776:
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
-            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 790:
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.LOW
-            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 791:
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.LOW
-            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        elif self.fault_number == 802:
-            bg = BinaryDataDecoder.read_uint16be(self.alarm_data, 0x01)
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
-            if bg < 0x300:
-                self.bg = bg
-                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
-                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
-            else:
-                return "[Error data]"
-
-        elif self.fault_number == 803:
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
-            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        elif self.fault_number == 809:
-            bg = BinaryDataDecoder.read_uint16be(self.alarm_data, 0x01)
-            self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
-            self.priority = NGPConstants.ALARM_PRIORITY.LOW
-            if bg < 0x300:
-                self.bg = bg
-                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
-                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
-
-            else:
-                return "[Error data]"
-
-        if self.fault_number == 812:
-            self.type = NGPConstants.ALARM_TYPE.PUMP
-            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
-            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        if self.fault_number == 798:
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.LOWEST
-            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[self.fault_number])
-
-        elif self.fault_number == 816:
-            bg = BinaryDataDecoder.read_uint16be(self.alarm_data, 0x01)
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
-            if bg < 0x300:
-                self.bg = bg
-                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
-                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
-            else:
-                return "[Error data]"
-
-        elif self.fault_number == 817:
-            bg = self.glucose(0x01)
-            self.type = NGPConstants.ALARM_TYPE.SENSOR
-            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
-            if bg:
-                self.bg = bg
-                return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[self.fault_number]).
-                                   format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
-            else:
-                return "[Error data]"
-
-
-        else:
-            return "[Don't parse data]"
-
-    def glucose(self, offset):
-        bg = BinaryDataDecoder.read_uint16be(self.alarm_data, offset)
-        if bg < 0x300:
-            return bg
-        else:
-            return False
-
-    def format(self, type, priority, str):
-
-        string = NGPConstants.ALARM_TYPE_NAME[type] + ", " + NGPConstants.ALARM_PRIORITY_NAME[priority] + ": "
-        msg = str.split("|")
-        string = string + msg[0]
-        if len(msg[1]) != 0:
-            string = string + "~" + msg[1]
-
-        return string
+        return alarm_str
 
 
 class AlarmClearedEvent(NGPHistoryEvent):
     def __str__(self):
-        return '{0}, faultNumber:{1}'.format(NGPHistoryEvent.__shortstr__(self), self.fault_number)
+        return '{0}, String: Cleared Event code:{1}'.format(NGPHistoryEvent.__shortstr__(self), self.fault_number)
 
     @property
     def fault_number(self):
@@ -1745,7 +2097,7 @@ class SensorAlertSilenceEndedEvent(NGPHistoryEvent):
 
 class GeneralSensorSettingsChangeEvent(NGPHistoryEvent):
     def __str__(self):
-        return '{0}'.format(NGPHistoryEvent.__str__(self))
+        return '{0}'.format(NGPHistoryEvent.__shortstr__(self))
 
 class DailyTotalsEvent(NGPHistoryEvent):
     def __init__(self, event_data):
