@@ -250,6 +250,17 @@ class NGPConstants:
         6: 'Low glucose manual resume via disable',
     }
 
+    class AUDIO_MODE:
+        SOUND = 0
+        VIBRATION = 1
+        SOUND_VIBRATION = 2
+
+    AUDIO_MODE_NAME = {
+        0: 'Sound',
+        1: 'Vibration',
+        2: 'Sound+Vibration',
+    }
+
     #### Alarms ####
     class ALARM_TYPE:
         PUMP = 1
@@ -561,6 +572,8 @@ class NGPHistoryEvent:
             return TimeResetEvent(self.eventData)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.USER_TIME_DATE_CHANGE:
             return UserTimeDateChangeEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.AUDIO_VIBRATE_MODE_CHANGE:
+            return AudioVibrateModeChangeEvent(self.eventData)
         # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
         #     return ClosedLoopBloodGlucoseReadingEvent(self.eventData)
 
@@ -1258,6 +1271,40 @@ class DisplayOptionChangeEvent(NGPHistoryEvent):
     @property
     def new_backlight_seconds(self):
         return BinaryDataDecoder.read_byte(self.eventData, 0x11)
+
+class AudioVibrateModeChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} OldVolumeLevel:{1}, NewVolumeLevel:{2}, OldMode:{3} ({4}), NewMode:{5} ({6})").format(
+                NGPHistoryEvent.__shortstr__(self),
+                self.old_volume_level, self.new_volume_level, self.old_mode_name, self.old_mode, self.new_mode_name, self.new_mode)
+
+    @property
+    def old_mode(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0B)
+
+    @property
+    def old_mode_name(self):
+        return NGPConstants.AUDIO_MODE_NAME[self.old_mode]
+
+    @property
+    def old_volume_level(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0C)
+
+    @property
+    def new_mode(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0D)
+
+    @property
+    def new_mode_name(self):
+        return NGPConstants.AUDIO_MODE_NAME[self.new_mode]
+
+    @property
+    def new_volume_level(self):
+        return BinaryDataDecoder.read_byte(self.eventData, 0x0E)
+
 
 
 class AirplaneModeEvent(NGPHistoryEvent):
@@ -3852,20 +3899,20 @@ class Medtronic600SeriesDriver( object ):
             return self.drift
 
     def open_device(self):
-        logger.info("# Opening device")
+        logger.debug("# Opening device")
         for d in hid.enumerate(self.USB_VID, self.USB_PID):
             if d['vendor_id'] == self.USB_VID and d['product_id'] == self.USB_PID:
                 self.device = hid.device()
                 self.device.open(self.USB_VID, self.USB_PID)
 
-                logger.info("Manufacturer: %s" % self.device.get_manufacturer_string())
-                logger.info("Product: %s" % self.device.get_product_string())
-                logger.info("Serial No: %s" % self.device.get_serial_number_string())
+                logger.debug("Manufacturer: %s" % self.device.get_manufacturer_string())
+                logger.debug("Product: %s" % self.device.get_product_string())
+                logger.debug("Serial No: %s" % self.device.get_serial_number_string())
                 return True
         return False
 
     def close_device(self):
-        logger.info("# Closing device")
+        logger.debug("# Closing device")
         self.device.close()
 
     # protected byte[] read_message(UsbHidDriver mDevice, int timeout) throws IOException, TimeoutException {
@@ -3899,7 +3946,7 @@ class Medtronic600SeriesDriver( object ):
                 logger.debug('READ: bytesRead={0}, payloadSize={1}, expectedSize={2}'.format(bytes_read, payload_size, expected_size))
 
             else:
-                logger.warning('Timeout waiting for message')
+                logger.debug('Timeout waiting for message')
                 raise TimeoutException( 'Timeout waiting for message' )
 
         logger.debug("READ: {0}".format(binascii.hexlify( payload )))
@@ -3921,7 +3968,7 @@ class Medtronic600SeriesDriver( object ):
     # protected int clear_message(UsbHidDriver mDevice, int timeout) throws IOException {
     def clear_message(self, timeout_ms=ERROR_CLEAR_TIMEOUT_MS):
 
-        logger.info("## CLEAR: timeout={0}".format(timeout_ms))
+        logger.debug("## CLEAR: timeout={0}".format(timeout_ms))
 
         count = 0
         cleared = False
@@ -4131,7 +4178,7 @@ class Medtronic600SeriesDriver( object ):
 
     # public DeviceInfoResponseCommandMessage send(UsbHidDriver mDevice, int millis) throws IOException, TimeoutException, EncryptionException, ChecksumException, UnexpectedMessageException {
     def request_device_info(self):
-        logger.info("# Read Device Info")
+        logger.debug("# Read Device Info")
         self.send_message( struct.pack( '>B', 0x58 ) )
 
         while True:
@@ -4174,14 +4221,14 @@ class Medtronic600SeriesDriver( object ):
             raise RuntimeError( 'Expected to get an 0x{0:x} control character, got message with length {1} and control char 0x{1:x}'.format(control_char, len(msg), msg[0]))
 
     def enter_control_mode(self):
-        logger.info("# enterControlMode")
+        logger.debug("# enterControlMode")
         self.send_message(struct.pack( '>B', asciiKey['NAK']))
         self.check_control_message(asciiKey['EOT'])
         self.send_message(struct.pack( '>B', asciiKey['ENQ']))
         self.check_control_message(asciiKey['ACK'])
 
     def exit_control_mode(self):
-        logger.info("# exitControlMode")
+        logger.debug("# exitControlMode")
         try:
             self.send_message(struct.pack( '>B', asciiKey['EOT']))
             self.check_control_message(asciiKey['ENQ'])
@@ -4189,7 +4236,7 @@ class Medtronic600SeriesDriver( object ):
             logger.warning("Unexpected error by exitControlMode, ignoring", exc_info = True)
 
     def enter_passthrough_mode(self):
-        logger.info("# enterPassthroughMode")
+        logger.debug("# enterPassthroughMode")
         self.send_message( struct.pack( '>2s', b'W|' ) )
         self.check_control_message(asciiKey['ACK'])
         self.send_message( struct.pack( '>2s', b'Q|' ) )
@@ -4198,7 +4245,7 @@ class Medtronic600SeriesDriver( object ):
         self.check_control_message(asciiKey['ACK'])
 
     def exit_passthrough_mode(self):
-        logger.info("# exitPassthroughMode")
+        logger.debug("# exitPassthroughMode")
         try:
             self.send_message( struct.pack( '>2s', b'W|' ) )
             self.check_control_message(asciiKey['ACK'])
@@ -4210,7 +4257,7 @@ class Medtronic600SeriesDriver( object ):
             logger.warning("Unexpected error by exitPassthroughMode, ignoring", exc_info = True)
 
     def open_connection(self):
-        logger.info("# Request Open Connection")
+        logger.debug("# Request Open Connection")
 
         mt_message = binascii.unhexlify( self.session.hmac )
         bayer_message = ContourNextLinkBinaryMessage( CommandType.OPEN_CONNECTION, self.session, mt_message )
@@ -4218,7 +4265,7 @@ class Medtronic600SeriesDriver( object ):
         self.read_message()
 
     def close_connection(self):
-        logger.info("# Request Close Connection")
+        logger.debug("# Request Close Connection")
         try:
             mt_message = binascii.unhexlify( self.session.hmac )
             bayer_message = ContourNextLinkBinaryMessage( CommandType.CLOSE_CONNECTION, self.session, mt_message )
@@ -4228,7 +4275,7 @@ class Medtronic600SeriesDriver( object ):
             logger.warning("Unexpected error by requestCloseConnection, ignoring", exc_info = True)
 
     def request_read_info(self):
-        logger.info("# Request Read Info")
+        logger.debug("# Request Read Info")
         bayer_message = ContourNextLinkBinaryMessage( CommandType.READ_INFO, self.session )
         self.send_message( bayer_message.encode() )
         response = ContourNextLinkBinaryMessage.decode( self.read_message() ) # The response is a 0x14 as well
@@ -4237,7 +4284,7 @@ class Medtronic600SeriesDriver( object ):
         self.session.pump_mac = info.pump_mac
 
     def read_link_key(self):
-        logger.info("# Request Read Link Key")
+        logger.debug("# Request Read Link Key")
         bayer_message = ContourNextLinkBinaryMessage( CommandType.REQUEST_LINK_KEY, self.session )
         self.send_message( bayer_message.encode() )
         response = ContourNextLinkBinaryMessage.decode( self.read_message() )
@@ -4246,7 +4293,7 @@ class Medtronic600SeriesDriver( object ):
         logger.debug("LINK KEY: {0}".format(binascii.hexlify(self.session.key)))
 
     def negotiate_channel(self):
-        logger.info("# Negotiate pump comms channel")
+        logger.debug("# Negotiate pump comms channel")
 
         # Scan the last successfully connected channel first, since this could save us negotiating time
         for self.session.radio_channel in [self.session.config.last_radio_channel] + self.CHANNELS:
@@ -4278,7 +4325,7 @@ class Medtronic600SeriesDriver( object ):
         return True
 
     def begin_ehsm(self):
-        logger.info("# Begin Extended High Speed Mode Session")
+        logger.debug("# Begin Extended High Speed Mode Session")
         mt_message = BeginEHSMMessage( self.session )
 
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
@@ -4286,7 +4333,7 @@ class Medtronic600SeriesDriver( object ):
         self.read_response0x81() # The Begin EHSM only has an 0x81 response
 
     def finish_ehsm(self):
-        logger.info("# Finish Extended High Speed Mode Session")
+        logger.debug("# Finish Extended High Speed Mode Session")
         mt_message = FinishEHSMMessage( self.session )
 
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
@@ -4306,7 +4353,7 @@ class Medtronic600SeriesDriver( object ):
         return med_message
 
     def get_pump_time(self):
-        logger.info("# Get Pump Time")
+        logger.debug("# Get Pump Time")
         mt_message = PumpTimeRequestMessage( self.session )
 
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
@@ -4319,7 +4366,7 @@ class Medtronic600SeriesDriver( object ):
         return result
 
     def get_pump_status(self):
-        logger.info("# Get Pump Status")
+        logger.debug("# Get Pump Status")
         mt_message = PumpStatusRequestMessage( self.session )
 
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
@@ -4331,7 +4378,7 @@ class Medtronic600SeriesDriver( object ):
 
     # public byte[] getBolusWizardCarbRatios() throws EncryptionException, IOException, ChecksumException, TimeoutException, UnexpectedMessageException {
     def get_bolus_wizard_carb_ratios(self):
-        logger.info("# Get Bolus Wizard Carb Ratios")
+        logger.debug("# Get Bolus Wizard Carb Ratios")
         mt_message = BolusWizardCarbRatiosRequestMessage( self.session)
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
         self.send_message( bayer_message.encode() )
@@ -4341,7 +4388,7 @@ class Medtronic600SeriesDriver( object ):
 
     # public byte[] getBolusWizardTargets() throws EncryptionException, IOException, ChecksumException, TimeoutException, UnexpectedMessageException {
     def get_bolus_wizard_targets(self):
-        logger.info("# Get Bolus Wizard Targets")
+        logger.debug("# Get Bolus Wizard Targets")
         mt_message = BolusWizardTargetsRequestMessage( self.session)
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
         self.send_message( bayer_message.encode() )
@@ -4351,7 +4398,7 @@ class Medtronic600SeriesDriver( object ):
 
     # public byte[] getBolusWizardSensitivity() throws EncryptionException, IOException, ChecksumException, TimeoutException, UnexpectedMessageException {
     def get_bolus_wizard_sensitivity(self):
-        logger.info("# Get Bolus Wizard Sensitivity")
+        logger.debug("# Get Bolus Wizard Sensitivity")
         mt_message = BolusWizardSensitivityRequestMessage( self.session)
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
         self.send_message( bayer_message.encode() )
@@ -4361,7 +4408,7 @@ class Medtronic600SeriesDriver( object ):
 
     # TODO Fixme
     def get_pump_basal_pattern(self):
-        logger.info("# Get Basal Pattern")
+        logger.debug("# Get Basal Pattern")
         mt_message = PumpBasalPatternRequestMessage( self.session, 0x07)
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
         self.send_message( bayer_message.encode() )
@@ -4370,7 +4417,7 @@ class Medtronic600SeriesDriver( object ):
         return result
 
     def get_pump_history_info(self, date_start, date_end, request_type = HistoryDataType.PUMP_DATA):
-        logger.info("# Get Pump History Info")
+        logger.debug("# Get Pump History Info")
         mt_message = PumpHistoryInfoRequestMessage(self.session, date_start, date_end, self.offset, request_type)
         bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
         self.send_message( bayer_message.encode() )
@@ -4379,7 +4426,7 @@ class Medtronic600SeriesDriver( object ):
         return response
 
     def get_pump_history(self, date_start, date_end, request_type = HistoryDataType.PUMP_DATA):
-        logger.info("# Get Pump History")
+        logger.debug("# Get Pump History")
         expected_segments = 0
         retry = 0
         all_segments = []
