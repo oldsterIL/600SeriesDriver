@@ -35,10 +35,10 @@ if __name__ == '__main__':
 
     print ("# End events")
 
-#         ii = 0
-#         for i in range(len(self.eventData)):
-#             if i >= 0x0B:
-#                 ii = i - 0x0B
-#                 print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))
-#             else:
-#                 print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))
+    # ii = 0
+    # for i in range(len(self.eventData)):
+    #     if i >= 0x0B:
+    #         ii = i - 0x0B
+    #         print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))
+    #     else:
+    #         print("0x{0:X} + (0x0B+0x{2:X}) -> 0x{1:X}".format(i, BinaryDataDecoder.read_byte(self.eventData, i), ii))

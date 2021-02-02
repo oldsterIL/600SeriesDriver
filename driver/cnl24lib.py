@@ -574,6 +574,14 @@ class NGPHistoryEvent:
             return UserTimeDateChangeEvent(self.eventData)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.AUDIO_VIBRATE_MODE_CHANGE:
             return AudioVibrateModeChangeEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.EXERCISE_EVENT_MARKER:
+            return ExerciseEventMarkerEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.INJECTION_EVENT_MARKER:
+            return InjectionEventMarkerEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.FOOD_EVENT_MARKER:
+            return FoodEventMarkerEvent(self.eventData)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OTHER_EVENT_MARKER:
+            return OtherEventMarkerEvent(self.eventData)
         # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
         #     return ClosedLoopBloodGlucoseReadingEvent(self.eventData)
 
@@ -1305,7 +1313,79 @@ class AudioVibrateModeChangeEvent(NGPHistoryEvent):
     def new_volume_level(self):
         return BinaryDataDecoder.read_byte(self.eventData, 0x0E)
 
+class ExerciseEventMarkerEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
 
+    def __str__(self):
+        # return ("{0} OldVolumeLevel:{1}, NewVolumeLevel:{2}, OldMode:{3} ({4}), NewMode:{5} ({6})").format(
+        #         NGPHistoryEvent.__shortstr__(self),
+        #         self.old_volume_level, self.new_volume_level, self.old_mode_name, self.old_mode, self.new_mode_name, self.new_mode)
+
+        return ("{0} DateTime:{1}, Duration:{2}").format(
+                NGPHistoryEvent.__shortstr__(self),
+                self.timestamp, str(timedelta(minutes=self.duration_minutes)))
+
+    @property
+    def timestamp(self):
+        return DateTimeHelper.decode_date_time(BinaryDataDecoder.read_uint64be(self.eventData, 0x0B))
+
+    @property
+    def duration_minutes(self):
+        return BinaryDataDecoder.read_uint16be(self.eventData, 0x13)
+
+class InjectionEventMarkerEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} DateTime:{1}, Injection:{2} U").format(
+                NGPHistoryEvent.__shortstr__(self),
+                self.timestamp, self.injection)
+
+    @property
+    def timestamp(self):
+        return DateTimeHelper.decode_date_time(BinaryDataDecoder.read_uint64be(self.eventData, 0x0B))
+
+    @property
+    def injection(self):
+        return BinaryDataDecoder.read_uint32be(self.eventData, 0x13) / 10000.0
+
+class FoodEventMarkerEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} DateTime:{1}, Type:{2} ({3}), Carb:{4}").format(
+                NGPHistoryEvent.__shortstr__(self),
+                self.timestamp, self.carb_units_name, self.carb_units, self.carb_input)
+
+    @property
+    def timestamp(self):
+        return DateTimeHelper.decode_date_time(BinaryDataDecoder.read_uint64be(self.eventData, 0x0B))
+
+    @property
+    def carb_units(self):
+        # See NGPUtil.NGPConstants.CARB_UNITS
+        return BinaryDataDecoder.read_byte(self.eventData, 0x13)  # carbUnits
+
+    @property
+    def carb_units_name(self):
+        # See NGPUtil.NGPConstants.CARB_UNITS
+        return NGPConstants.CARB_UNITS_NAME[self.carb_units]
+
+    @property
+    def carb_input(self):
+        carbs = BinaryDataDecoder.read_uint16be(self.eventData, 0x14)  # carbInput
+        return carbs if self.carb_units == NGPConstants.CARB_UNITS.GRAMS else carbs / 10.0
+
+class OtherEventMarkerEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0}").format(
+                NGPHistoryEvent.__shortstr__(self))
 
 class AirplaneModeEvent(NGPHistoryEvent):
     def __init__(self, event_data):
