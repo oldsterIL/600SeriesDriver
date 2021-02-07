@@ -59,7 +59,7 @@ if __name__ == '__main__':
                                 logger.info("Pump time drift: {0}".format(mt.pump_time_drift))
 
                                 # !!! Max timedelta = 10 days
-                                start_date = datetime.datetime.now() - datetime.timedelta(days=1)
+                                start_date = datetime.datetime.now() - datetime.timedelta(days=10)
                                 # TODO find a solution how to set the time to the nearest minute
                                 # start_date = datetime.datetime.now() - datetime.timedelta(minutes=30)
                                 # end_date = datetime.datetime.now() - datetime.timedelta(days=70)
