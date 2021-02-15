@@ -1212,7 +1212,7 @@ class OldBasalPatternEvent(NGPHistoryEvent):
                 "start_minutes" : start,
                 "time_str" : time
             }
-            segments.update({i+1 : seg })
+            segments.update({ "{0}".format(i+1) : seg })
             pos = pos + 0x05
         return segments
 
@@ -1249,7 +1249,7 @@ class NewBasalPatternEvent(NGPHistoryEvent):
                 "start_minutes" : start,
                 "time_str" : time
             }
-            segments.update({i+1 : seg })
+            segments.update({"{0}".format(i+1) : seg })
             pos = pos + 0x05
         return segments
 
@@ -2944,7 +2944,7 @@ class SourceIdConfigurationEvent(NGPHistoryEvent):
                 "revision" : revision,
                 "ver_str" : ver_str,
             }
-            segments.update({i+1 : seg })
+            segments.update({"{0}".format(i+1) : seg })
             pos = pos + 0x1E
         return segments
 
@@ -3438,8 +3438,8 @@ class MedtronicReceiveMessage( MedtronicMessage ):
 
         response.response_payload = decrypted_response_payload[0:-2]
 
-        # logger.debug("### DECRYPTED PAYLOAD:")
-        # logger.debug(binascii.hexlify(response.response_payload))
+        logger.debug("### DECRYPTED PAYLOAD:")
+        logger.debug(binascii.hexlify(response.response_payload))
 
         if len(response.response_payload) > 2:
             checksum = struct.unpack( '>H', decrypted_response_payload[-2:])[0]
@@ -4201,14 +4201,16 @@ class BolusWizardCarbRatiosResponseMessage( MedtronicReceiveMessage ):
             rate2 = (struct.unpack('>I', self.response_payload[index+0x04:index+0x08])[0]) / 1000  # Units Insulin per One Exchange
             carb2 = round((15 / rate2), 4)  # One Exchange = 15 Grams Carb
             time = (struct.unpack('>B', self.response_payload[index+0x08:index+0x09])[0]) * 30
-            index = index + 0x09
+            time_str = str(timedelta(minutes=time))
+            index += 0x09
             carb = {
                 "rate1" : rate1,
                 "rate2" : rate2,
                 "carb"  : carb2,
-                "time"  : time
+                "time_minutes"  : time,
+                "time_str"  : time_str
             }
-            all_carb_ratios.update({i+1 : carb })
+            all_carb_ratios.update({"{0}".format(i+1) : carb })
             logger.debug("TimePeriod: {0}, Rate1: {1}, Rate2: {2}, (as carb = {3}), Time: {4}h {5}m".format((i+1),rate1,rate2,carb2,(time/60),(time%60)))
 
         return all_carb_ratios
@@ -4239,16 +4241,18 @@ class BolusWizardTargetsResponseMessage( MedtronicReceiveMessage ):
             lo_mgdl = (struct.unpack('>H', self.response_payload[index+0x04:index+0x06])[0])
             lo_mmol = ((struct.unpack('>H', self.response_payload[index + 0x06:index + 0x08])[0]) / 10)
             time = (struct.unpack('>B', self.response_payload[index + 0x08:index + 0x09])[0]) * 30
-            index = index + 0x09
+            index += 0x09
+            time_str = str(timedelta(minutes=time))
 
             target = {
                 "hi_mgdl" : hi_mgdl,
                 "hi_mmol" : hi_mmol,
                 "lo_mgdl"  : lo_mgdl,
                 "lo_mmol"  : lo_mmol,
-                "time"  : time
+                "time_minutes"  : time,
+                "time_str"  : time_str
             }
-            all_targets.update({i+1 : target })
+            all_targets.update({"{0}".format(i+1) : target })
             logger.debug("TimePeriod: {0}, hi_mgdl: {1}, hi_mmol: {2}, lo_mgdl: {3}, lo_mmol: {4}, Time: {5}h {6}m".format((i+1),hi_mgdl,hi_mmol,lo_mgdl,lo_mmol,(time/60),(time%60)))
 
         return all_targets
@@ -4277,14 +4281,17 @@ class BolusWizardSensitivityResponseMessage( MedtronicReceiveMessage ):
             isf_mgdl = (struct.unpack('>H', self.response_payload[index:index+0x02])[0])
             isf_mmol = ((struct.unpack('>H', self.response_payload[index+0x02:index+0x04])[0]) / 10)
             time = (struct.unpack('>B', self.response_payload[index + 0x04:index + 0x05])[0]) * 30
-            index = index + 0x05
+            index += 0x05
+            time_str = str(timedelta(minutes=time))
 
             target = {
                 "isf_mgdl" : isf_mgdl,
                 "isf_mmol" : isf_mmol,
-                "time"  : time
+                "time_minutes"  : time,
+                "time_str"  : time_str,
+
             }
-            all_sensitivity.update({i+1 : target })
+            all_sensitivity.update({"{0}".format(i+1) : target })
             logger.debug("TimePeriod: {0}, isf_mgdl: {1}, isf_mmol: {2}, Time: {3}h {4}m".format((i+1),isf_mgdl,isf_mmol,(time/60),(time%60)))
 
         return all_sensitivity
@@ -4299,32 +4306,6 @@ class PumpBasalPatternResponseMessage( MedtronicReceiveMessage ):
         # Since we only add behaviour, we can cast this class to ourselves
         response.__class__ = PumpBasalPatternResponseMessage
         return response
-
-    # @property
-    # def time_set(self):
-    #     if self.response_payload[3] == 0:
-    #         return False
-    #     else:
-    #         return True
-    #
-    # @property
-    # def basal_pattern_number(self):
-    #     return struct.unpack( '>B', self.response_payload[0x00:0x01])[0]
-    #
-    # @property
-    # def len_payload(self):
-    #     return len(self.response_payload)
-
-    #
-    # @property
-    # def pump_datetime(self):
-    #     date_time_data = self.encoded_datetime
-    #     return DateTimeHelper.decode_date_time(date_time_data)
-    #
-    # @property
-    # def offset(self):
-    #     date_time_data = self.encoded_datetime
-    #     return DateTimeHelper.decode_date_time_offset(date_time_data)
 
 class Medtronic600SeriesDriver( object ):
     USB_BLOCKSIZE = 64
@@ -4835,7 +4816,7 @@ class Medtronic600SeriesDriver( object ):
             if med_message.message_type in expected_message_types:
                 message_received = True
             else:
-                logger.warning("## getMedtronicMessage: waiting for message of [{0}], got 0x{1:x}".format(''.join('%04x ' % i for i in expected_message_types), med_message.message_type))
+                logger.warning("## getMedtronicMessage: waiting for message of [0x{0}], got 0x{1:X}".format(''.join('%04x' % i for i in expected_message_types), med_message.message_type))
         return med_message
 
     def get_pump_time(self):
@@ -4892,16 +4873,6 @@ class Medtronic600SeriesDriver( object ):
         result = self.get_medtronic_message([ComDCommand.READ_BOLUS_WIZARD_SENSITIVITY_FACTORS_RESPONSE])
         return result.sensitivity
 
-    # TODO Fixme
-    def get_pump_basal_pattern(self):
-        logger.debug("# Get Basal Pattern")
-        mt_message = PumpBasalPatternRequestMessage( self.session, 0x07)
-        bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
-        self.send_message( bayer_message.encode() )
-        self.read_response0x81()
-        result = self.get_medtronic_message([ComDCommand.READ_BASAL_PATTERN_RESPONSE])
-        return result
-
     def get_pump_history_info(self, date_start, date_end, request_type = HistoryDataType.PUMP_DATA):
         logger.debug("# Get Pump History Info")
         mt_message = PumpHistoryInfoRequestMessage(self.session, date_start, date_end, self.offset, request_type)
@@ -4917,7 +4888,7 @@ class Medtronic600SeriesDriver( object ):
         retry = 0
         all_segments = []
         segment = []
-        multipacket_session = None
+        multi_packet_session = None
         decrypted = None
 
         mt_message = PumpHistoryRequestMessage(self.session, date_start, date_end, self.offset, request_type)
@@ -4929,10 +4900,10 @@ class Medtronic600SeriesDriver( object ):
         transmission_completed = False
         while transmission_completed != True:
 
-            if multipacket_session != None and multipacket_session.payload_complete() == False:
+            if multi_packet_session != None and multi_packet_session.payload_complete() == False:
                 while True:
                     if expected_segments < 1:
-                        packet_number, missing = multipacket_session.missing_segments()
+                        packet_number, missing = multi_packet_session.missing_segments()
                         logger.debug("Sending MultipacketResendPacketsMessage")
                         ack_message = MultipacketResendPacketsMessage(self.session, packet_number, missing)
                         bayer_ack_message = ContourNextLinkBinaryMessage(CommandType.SEND_MESSAGE, self.session,ack_message.encode())
@@ -4943,7 +4914,7 @@ class Medtronic600SeriesDriver( object ):
 
                     try:
                         # timeout adjusted for efficiency and to allow for large gaps of missing segments as the pump will keep sending until done
-                        if multipacket_session.segments_filled == 0:
+                        if multi_packet_session.segments_filled == 0:
                             # pump may have missed the initial ack, we need to wait the max timeout period
                             timeout = Medtronic600SeriesDriver.READ_TIMEOUT_MS
                         else:
@@ -4961,17 +4932,17 @@ class Medtronic600SeriesDriver( object ):
                         break
                     except:
                         retry = retry + 1
-                        if multipacket_session.segments_filled == 0:
+                        if multi_packet_session.segments_filled == 0:
                             self.clear_message()
                             logger.error("Multisession timeout: failed no segments filled")
-                        elif (multipacket_session.segments_filled * 100) / multipacket_session.packets_to_fetch < 20:
+                        elif (multi_packet_session.segments_filled * 100) / multi_packet_session.packets_to_fetch < 20:
                             self.clear_message()
                             logger.error("Multisession timeout: failed, missed packets > 80%")
                         elif retry >= Medtronic600SeriesDriver.MULTIPACKET_SEGMENT_RETRY:
                             self.clear_message()
                             logger.error("Multisession timeout: retry failed")
 
-                        logger.error("Multisession timeout: count: {0}/{1} expecting: {2} retry: {3}".format(multipacket_session.segments_filled, multipacket_session.packets_to_fetch, expected_segments, retry))
+                        logger.error("Multisession timeout: count: {0}/{1} expecting: {2} retry: {3}".format(multi_packet_session.segments_filled, multi_packet_session.packets_to_fetch, expected_segments, retry))
                         expected_segments = 0
 
                     if retry > 0:
@@ -4998,14 +4969,14 @@ class Medtronic600SeriesDriver( object ):
             elif decrypted.message_type == ComDCommand.INITIATE_MULTIPACKET_TRANSFER:
                 logger.info("### getPumpHistory got INITIATE_MULTIPACKET_TRANSFER")
 
-                multipacket_session = MultipacketSession(decrypted)
+                multi_packet_session = MultipacketSession(decrypted)
 
-                logger.info("### session_size: {0}".format(multipacket_session.session_size))
-                logger.info("### packet_size: {0}".format(multipacket_session.packet_size))
-                logger.info("### last_packet_size: {0}".format(multipacket_session.last_packet_size))
-                logger.info("### packets_to_fetch: {0}".format(multipacket_session.packets_to_fetch))
-                logger.info("### last_packet_number: {0}".format(multipacket_session.last_packet_number))
-                logger.info("### segments_filled: {0}".format(multipacket_session.segments_filled))
+                logger.info("### session_size: {0}".format(multi_packet_session.session_size))
+                logger.info("### packet_size: {0}".format(multi_packet_session.packet_size))
+                logger.info("### last_packet_size: {0}".format(multi_packet_session.last_packet_size))
+                logger.info("### packets_to_fetch: {0}".format(multi_packet_session.packets_to_fetch))
+                logger.info("### last_packet_number: {0}".format(multi_packet_session.last_packet_number))
+                logger.info("### segments_filled: {0}".format(multi_packet_session.segments_filled))
 
 
                 ack_message = AckMultipacketRequestMessage(self.session, ComDCommand.INITIATE_MULTIPACKET_TRANSFER)
@@ -5013,22 +4984,22 @@ class Medtronic600SeriesDriver( object ):
                 self.send_message( bayer_ack_message.encode() )
                 self.read_response0x81()
 
-                expected_segments = multipacket_session.packets_to_fetch
+                expected_segments = multi_packet_session.packets_to_fetch
 
                 logger.debug("Start multipacket session")
 
             elif decrypted.message_type == ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION:
                 logger.debug("## getPumpHistory got MULTIPACKET_SEGMENT_TRANSMISSION")
 
-                if multipacket_session == None:
+                if multi_packet_session == None:
                     logger.debug("multipacketSession not initiated before segment received")
-                if multipacket_session.payload_complete():
+                if multi_packet_session.payload_complete():
                     logger.debug("Multisession Complete - packet not needed")
                 else:
-                    if multipacket_session.add_segment(decrypted):
+                    if multi_packet_session.add_segment(decrypted):
                         expected_segments = expected_segments - 1
 
-                    if multipacket_session.payload_complete():
+                    if multi_packet_session.payload_complete():
                         logger.debug("Multisession Complete")
                         ack_message = AckMultipacketRequestMessage(self.session, ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION)
                         bayer_ack_message = ContourNextLinkBinaryMessage(CommandType.SEND_MESSAGE, self.session, ack_message.encode())
@@ -5036,8 +5007,8 @@ class Medtronic600SeriesDriver( object ):
                         self.read_response0x81()
 
                         # Save current segment
-                        for x in range(len(multipacket_session.response)):
-                            segment.extend(multipacket_session.response[x])
+                        for x in range(len(multi_packet_session.response)):
+                            segment.extend(multi_packet_session.response[x])
 
                         all_segments.append(bytes(segment))
                         segment = []
@@ -5130,3 +5101,185 @@ class Medtronic600SeriesDriver( object ):
         for event in history_events:
             event.post_process(history_events)
         return history_events
+
+    def get_pump_basal_pattern_current_number(self):
+        expected_segments = 0
+        retry = 0
+        all_segments = []
+        segment = []
+        multi_packet_session = None
+        decrypted = None
+
+        transmission_completed = False
+        while transmission_completed != True:
+
+            if multi_packet_session != None and multi_packet_session.payload_complete() == False:
+                while True:
+                    if expected_segments < 1:
+                        packet_number, missing = multi_packet_session.missing_segments()
+                        logger.debug("Sending MultipacketResendPacketsMessage")
+                        ack_message = MultipacketResendPacketsMessage(self.session, packet_number, missing)
+                        bayer_ack_message = ContourNextLinkBinaryMessage(CommandType.SEND_MESSAGE, self.session,ack_message.encode())
+                        self.send_message(bayer_ack_message.encode())
+                        self.read_response0x81()
+
+                        expected_segments = missing
+
+                    try:
+                        # timeout adjusted for efficiency and to allow for large gaps of missing segments as the pump will keep sending until done
+                        if multi_packet_session.segments_filled == 0:
+                            # pump may have missed the initial ack, we need to wait the max timeout period
+                            timeout = Medtronic600SeriesDriver.READ_TIMEOUT_MS
+                        else:
+                            timeout = Medtronic600SeriesDriver.MULTIPACKET_SEGMENT_MS * expected_segments
+                            if timeout < Medtronic600SeriesDriver.MULTIPACKET_TIMEOUT_MS:
+                                timeout = Medtronic600SeriesDriver.MULTIPACKET_TIMEOUT_MS
+
+                        decrypted = self.get_medtronic_message([ComDCommand.INITIATE_MULTIPACKET_TRANSFER,
+                                                                ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION,
+                                                                ComDCommand.MULTIPACKET_RESEND_PACKETS,
+                                                                ComDCommand.END_HISTORY_TRANSMISSION,
+                                                                ComDCommand.READ_BASAL_PATTERN_RESPONSE,
+                                                                ComDCommand.HIGH_SPEED_MODE_COMMAND,
+                                                                ComDCommand.NAK_COMMAND], timeout)
+                        retry = 0
+                        break
+                    except:
+                        retry = retry + 1
+                        if multi_packet_session.segments_filled == 0:
+                            self.clear_message()
+                            logger.error("Multisession timeout: failed no segments filled")
+                        elif (multi_packet_session.segments_filled * 100) / multi_packet_session.packets_to_fetch < 20:
+                            self.clear_message()
+                            logger.error("Multisession timeout: failed, missed packets > 80%")
+                        elif retry >= Medtronic600SeriesDriver.MULTIPACKET_SEGMENT_RETRY:
+                            self.clear_message()
+                            logger.error("Multisession timeout: retry failed")
+
+                        logger.error("Multisession timeout: count: {0}/{1} expecting: {2} retry: {3}".format(multi_packet_session.segments_filled, multi_packet_session.packets_to_fetch, expected_segments, retry))
+                        expected_segments = 0
+
+                    if retry > 0:
+                        break
+
+            else:
+                decrypted = self.get_medtronic_message([ComDCommand.INITIATE_MULTIPACKET_TRANSFER,
+                                                               ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION,
+                                                               ComDCommand.MULTIPACKET_RESEND_PACKETS,
+                                                               ComDCommand.END_HISTORY_TRANSMISSION,
+                                                               ComDCommand.READ_BASAL_PATTERN_RESPONSE,
+                                                               ComDCommand.HIGH_SPEED_MODE_COMMAND,
+                                                               ComDCommand.NAK_COMMAND])
+
+
+            if decrypted.message_type == ComDCommand.NAK_COMMAND:
+                self.clear_message()
+                # TODO Add decode NAK command
+                logger.info("## Pump sent a NAK 0x{0:X}:0x{1:X}".format(decrypted.nakcmd, decrypted.nakcode))
+
+            if decrypted.message_type == ComDCommand.HIGH_SPEED_MODE_COMMAND:
+                logger.debug("## getPumpHistory consumed HIGH_SPEED_MODE_COMMAND={0}".format(decrypted.ehs_mmode))
+                if decrypted.ehs_mmode == 0:
+                    pass
+                else:
+                    transmission_completed = True
+
+            elif decrypted.message_type == ComDCommand.INITIATE_MULTIPACKET_TRANSFER:
+                logger.info("### getPumpHistory got INITIATE_MULTIPACKET_TRANSFER")
+
+                multi_packet_session = MultipacketSession(decrypted)
+
+                logger.info("### session_size: {0}".format(multi_packet_session.session_size))
+                logger.info("### packet_size: {0}".format(multi_packet_session.packet_size))
+                logger.info("### last_packet_size: {0}".format(multi_packet_session.last_packet_size))
+                logger.info("### packets_to_fetch: {0}".format(multi_packet_session.packets_to_fetch))
+                logger.info("### last_packet_number: {0}".format(multi_packet_session.last_packet_number))
+                logger.info("### segments_filled: {0}".format(multi_packet_session.segments_filled))
+
+
+                ack_message = AckMultipacketRequestMessage(self.session, ComDCommand.INITIATE_MULTIPACKET_TRANSFER)
+                bayer_ack_message = ContourNextLinkBinaryMessage(CommandType.SEND_MESSAGE, self.session, ack_message.encode())
+                self.send_message( bayer_ack_message.encode() )
+                self.read_response0x81()
+
+                expected_segments = multi_packet_session.packets_to_fetch
+
+                logger.debug("Start multipacket session")
+
+            elif decrypted.message_type == ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION:
+                logger.debug("## getPumpHistory got MULTIPACKET_SEGMENT_TRANSMISSION")
+
+                if multi_packet_session == None:
+                    logger.debug("multipacketSession not initiated before segment received")
+                if multi_packet_session.payload_complete():
+                    logger.debug("Multisession Complete - packet not needed")
+                else:
+                    if multi_packet_session.add_segment(decrypted):
+                        expected_segments = expected_segments - 1
+
+                    if multi_packet_session.payload_complete():
+                        logger.debug("Multisession Complete")
+                        ack_message = AckMultipacketRequestMessage(self.session, ComDCommand.MULTIPACKET_SEGMENT_TRANSMISSION)
+                        bayer_ack_message = ContourNextLinkBinaryMessage(CommandType.SEND_MESSAGE, self.session, ack_message.encode())
+                        self.send_message( bayer_ack_message.encode() )
+                        self.read_response0x81()
+
+                        # Save current segment
+                        for x in range(len(multi_packet_session.response)):
+                            segment.extend(multi_packet_session.response[x])
+
+                        all_segments.append(bytes(segment))
+                        segment = []
+
+            elif decrypted.message_type == ComDCommand.END_HISTORY_TRANSMISSION:
+                logger.debug("## getPumpHistory got END_HISTORY_TRANSMISSION")
+                transmission_completed = True
+            elif decrypted.message_type == ComDCommand.READ_BASAL_PATTERN_RESPONSE:
+                logger.debug("## getPumpHistory got READ_BASAL_PATTERN_RESPONSE")
+                all_segments.append(bytes(decrypted.response_payload)[1:])
+                transmission_completed = True
+            else:
+                logger.warning("## getPumpHistory !!! UNKNOWN MESSAGE !!!")
+                logger.warning("## getPumpHistory response.messageType: {0:x}".format(decrypted.message_type))
+
+        if transmission_completed:
+            for segment in all_segments:
+                if len(segment) > 3:
+                    basal_patterns = {}
+                    index = 2
+                    number = BinaryDataDecoder.read_byte(segment, index)
+                    items = BinaryDataDecoder.read_byte(segment, index + 1)
+                    logger.debug("Basal pattern: {0}, Items: {1}".format(number, items))
+                    index += 2
+                    for i in range (items):
+                        rate = BinaryDataDecoder.read_uint32be(segment, index) / 10000.0
+                        time = BinaryDataDecoder.read_byte(segment, index + 4) * 30
+                        time_str = str(timedelta(minutes=time))
+                        basal_patern = {
+                            "rate" : rate,
+                            "time_minutes" : time,
+                            "time_str" : time_str,
+                        }
+                        basal_patterns.update({ "{0}".format(i+1) : basal_patern })
+                        index += 5
+
+                    return basal_patterns
+                else:
+                    return {}
+        else:
+            logger.error("Transmission finished, but READ_BASAL_PATTERN_RESPONSE did not arrive")
+
+    def get_pump_basal_pattern(self):
+        logger.debug("# Get Basal Pattern")
+        all_basal_patterns = {}
+
+        for i in range (1,9):
+            mt_message = PumpBasalPatternRequestMessage( self.session, i)
+
+            bayer_message = ContourNextLinkBinaryMessage( CommandType.SEND_MESSAGE, self.session, mt_message.encode() )
+            self.send_message( bayer_message.encode() )
+            self.read_response0x81()
+
+            all_basal_patterns.update({NGPConstants.BASAL_PATTERN_NAME[i] : self.get_pump_basal_pattern_current_number()})
+
+        return all_basal_patterns
