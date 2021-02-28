@@ -59,7 +59,7 @@ if __name__ == '__main__':
                                 logger.info("Pump time drift: {0}".format(mt.pump_time_drift))
 
                                 # !!! Max timedelta = 10 days
-                                start_date = datetime.datetime.now() - datetime.timedelta(days=1)
+                                start_date = datetime.datetime.now() - datetime.timedelta(days=10)
                                 # TODO find a solution how to set the time to the nearest minute
                                 # start_date = datetime.datetime.now() - datetime.timedelta(minutes=30)
                                 # end_date = datetime.datetime.now() - datetime.timedelta(days=70)
@@ -90,8 +90,8 @@ if __name__ == '__main__':
                                 print("# End events")
 
 
-                                basal_pattern = mt.get_pump_basal_pattern()
-                                print(basal_pattern)
+                                # basal_pattern = mt.get_pump_basal_pattern()
+                                # print(basal_pattern)
 
                                 #
                                 # # Соотношение инсулин/углеводы I:C [g]

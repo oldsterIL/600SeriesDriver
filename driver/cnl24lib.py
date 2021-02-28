@@ -22,12 +22,6 @@ from datetime import timedelta
 VERSION = "0.1"
 
 # MEAL_WIZARD_ESTIMATE
-# OLD_BOLUS_WIZARD_INSULIN_SENSITIVITY
-# NEW_BOLUS_WIZARD_INSULIN_SENSITIVITY
-# OLD_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS
-# NEW_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS
-# OLD_BOLUS_WIZARD_BG_TARGETS
-# NEW_BOLUS_WIZARD_BG_TARGETS
 # CLOSED_LOOP_TRANSITION
 # CLOSED_LOOP_DAILY_TOTALS
 # CLOSED_LOOP_ALARM_AUTO_CLEARED
@@ -142,6 +136,7 @@ class NGPConstants:
        -1: "NA"
     }
     SENSOR_EXCEPTIONS_NAME = {
+        0x0000: "Lost connection to sensor",
         0x0300: "Sensor OK",
         0x0301: "Sensor warming up",
         0x0302: "Calibrate sensor now",
@@ -155,7 +150,6 @@ class NGPConstants:
         0x030A: "Calibrating sensor",
         0x030B: "Calibrating error - Change sensor",
         0x030C: "Time unknown",
-        0x0000: "Lost connection to sensor"
     }
 
     BASAL_PATTERN_NAME = {
@@ -297,6 +291,7 @@ class NGPConstants:
         8   : "Insulin flow blocked|Estimated 0U insulin in reservoir. Change reservoir and infusion set.",
         11  : "Replace battery now|Delivery stopped. Battery must be replaced to resume delivery.",
         15  : "Pump error 15|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
+        23  : "Pump error 23|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
         53  : "Pump error 53|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
         54  : "Pump error 54|Delivery stopped. Settings unchanged. Select OK to continue. See User Guide.",
         58  : "Battery Failed|Insert a new AA battery.",
@@ -322,6 +317,7 @@ class NGPConstants:
         780 : "Lost sensor signal|Move pump closer to transmitter. May take 15 minutes to find signal.",
         781 : "Possible signal interference|Move away from electronic devices. May take 15 minutes to find signal.",
         784 : "Rise Alert|Sensor glucose rising rapidly.",
+        788 : "BG not received|Place pump close to transmitter. Select OK to resend BG to transmitter.",
         790 : "Cannot find sensor signal|Disconnect and reconnect transmitter. Notice if transmitter light blinks.",
         791 : "Sensor signal not found|Did transmitter light blink when connected to sensor?",
         794 : "Sensor expired|Insert new sensor.",
@@ -344,6 +340,33 @@ class NGPConstants:
 
     ALARM_PERSONAL_REMINDER = "Personal 1|Personal 2|Personal 3|Personal 4|Personal 5|Personal 6|BG Check|Medication"
     ALARM_MISSED_MEAL_BOLUS_REMINDER = "Meal 1|Meal 2|Meal 3|Meal 4|Meal 5|Meal 6|Meal 7|Meal 8"
+
+    LANGUAGE_PUMP_NAME = {
+        0 : "English",
+        1 : "Arabic",
+        2 : "Chinese",
+        3 : "Czech",
+        4 : "Danish",
+        5 : "Dutch",
+        6 : "Finnish",
+        7 : "French",
+        8 : "German",
+        9 : "Greek",
+        10: "Hebrew",
+        11: "Hungarian",
+        12: "Italian",
+        13: "Japanese",
+        14: "Korean",
+        15: "Norwegian",
+        16: "Polish",
+        17: "Portuguese",
+        18: "Russian",
+        19: "Slovak",
+        20: "Slovenian",
+        21: "Spanish",
+        22: "Swedish",
+        23: "Turkish"
+    }
 
 
 
@@ -608,6 +631,42 @@ class NGPHistoryEvent:
             return SelfTestResultsEvent(self.event_data)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.REWIND:
             return RewindEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.USER_SETTINGS_RESET_TO_DEFAULTS:
+            return UserSettingsResetToDefaultsEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.STARTUP_WIZARD_START_END:
+            return StartupWizardStartEndEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.LANGUAGE_CHANGE:
+            return LanguageChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.TIME_FORMAT_CHANGE:
+            return TimeFormatChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS:
+            return OldBolusWizardInsulinToCarbEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_BOLUS_WIZARD_INSULIN_TO_CARB_RATIOS:
+            return NewBolusWizardInsulinToCarbEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_BOLUS_WIZARD_INSULIN_SENSITIVITY:
+            return OldBolusWizardInsulinSensitivityEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_BOLUS_WIZARD_INSULIN_SENSITIVITY:
+            return NewBolusWizardInsulinSensitivityEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_BOLUS_WIZARD_BG_TARGETS:
+            return OldBolusWizardBgTargetsEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_BOLUS_WIZARD_BG_TARGETS:
+            return NewBolusWizardBgTargetsEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.SQUARE_BOLUS_OPTION_CHANGE:
+            return SquareBolusOptionChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.DUAL_BOLUS_OPTION_CHANGE:
+            return DualBolusOptionChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.BOLUS_INCREMENT_CHANGE:
+            return BolusIncrementChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.MAX_BASAL_RATE_CHANGE:
+            return MaxBasalRateChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.MAX_BOLUS_CHANGE:
+            return MaxBolusChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.EASY_BOLUS_OPTION_CHANGE:
+            return EasyBolusOptionChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.AUTO_SUSPEND_CHANGE:
+            return AutoSuspendChangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.BOLUS_DELIVERY_RATE_CHANGE:
+            return BolusDeliveredRateCangeEvent(self.event_data)
         # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
         #     return ClosedLoopBloodGlucoseReadingEvent(self.eventData)
 
@@ -769,7 +828,7 @@ class NetworkDeviceConnectionEvent (NGPHistoryEvent):
         NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
-        return '{0} Flag1:{1}, Flag2:{2}, Value1:{3}, Serial:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+        return '{0} OldStatus:{1}, NewStatus:{2}, Value1:{3}, Serial:{4}'.format(NGPHistoryEvent.__shortstr__(self),
                                                                           self.flag1, self.flag2,
                                                                           self.value1, self.serial)
 
@@ -1735,6 +1794,546 @@ class RewindEvent(NGPHistoryEvent):
     def __str__(self):
         return ("{0}").format(NGPHistoryEvent.__shortstr__(self))
 
+class UserSettingsResetToDefaultsEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0}").format(NGPHistoryEvent.__shortstr__(self))
+
+class StartupWizardStartEndEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Status: {1} ({2})").format(NGPHistoryEvent.__shortstr__(self), self.status_name, self.status)
+
+    @property
+    def status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def status_name(self):
+        return "End" if self.status == 1 else "Start"
+
+class LanguageChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old:{1} ({2}), New:{3} ({4})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_language, self.old_number,
+            self.new_language, self.new_number)
+
+    @property
+    def old_number(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_number(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def old_language(self):
+        return NGPConstants.LANGUAGE_PUMP_NAME[self.old_number]
+
+    @property
+    def new_language(self):
+        return NGPConstants.LANGUAGE_PUMP_NAME[self.new_number]
+
+class TimeFormatChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old:{1} ({2}), New:{3} ({4})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_time_format_name, self.old_number,
+            self.new_time_format_name, self.new_number)
+
+    @property
+    def old_number(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_number(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def old_time_format_name(self):
+        return "12h" if self.old_number == 0 else "24h"
+
+    @property
+    def new_time_format_name(self):
+        return "12h" if self.new_number == 0 else "24h"
+
+class OldBolusWizardInsulinToCarbEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                                self.carb_units_name, self.carb_units,
+                                                                                self.number_of_segments, self.segments)
+    @property
+    def carb_units(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=grams 1=exchanges
+
+    @property
+    def carb_units_name(self):
+        return NGPConstants.CARB_UNITS_NAME[self.carb_units]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
+            amount_tmp = BinaryDataDecoder.read_uint32be(self.event_data, pos + 1)
+            amount = amount_tmp / 10.0 if (self.carb_units == NGPConstants.CARB_UNITS.GRAMS) else amount_tmp / 1000.0
+
+            time = str(timedelta(minutes=start))
+            seg = {
+                "amount" : amount,
+                "start_minutes" : start,
+                "time_str" : time
+            }
+            segments.update({ "{0}".format(i+1) : seg })
+            pos = pos + 0x05
+        return segments
+
+class NewBolusWizardInsulinToCarbEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                                self.carb_units_name, self.carb_units,
+                                                                                self.number_of_segments, self.segments)
+    @property
+    def carb_units(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=grams 1=exchanges
+
+    @property
+    def carb_units_name(self):
+        return NGPConstants.CARB_UNITS_NAME[self.carb_units]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
+            amount_tmp = BinaryDataDecoder.read_uint32be(self.event_data, pos + 1)
+            amount = amount_tmp / 10.0 if (self.carb_units == NGPConstants.CARB_UNITS.GRAMS) else amount_tmp / 1000.0
+
+            time = str(timedelta(minutes=start))
+            seg = {
+                "amount" : amount,
+                "start_minutes" : start,
+                "time_str" : time
+            }
+            segments.update({ "{0}".format(i+1) : seg })
+            pos = pos + 0x05
+        return segments
+
+class OldBolusWizardInsulinSensitivityEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                               self.bg_units_name, self.bg_units,
+                                                                               self.number_of_segments, self.segments)
+    @property
+    def bg_units(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
+
+    @property
+    def bg_units_name(self):
+        return NGPConstants.BG_UNITS_NAME[self.bg_units]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
+            amount_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
+            amount = amount_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else amount_tmp / 10.0
+
+            time = str(timedelta(minutes=start))
+            seg = {
+                "amount" : amount,
+                "start_minutes" : start,
+                "time_str" : time
+            }
+            segments.update({ "{0}".format(i+1) : seg })
+            pos = pos + 0x03
+        return segments
+
+class NewBolusWizardInsulinSensitivityEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                               self.bg_units_name, self.bg_units,
+                                                                               self.number_of_segments, self.segments)
+    @property
+    def bg_units(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
+
+    @property
+    def bg_units_name(self):
+        return NGPConstants.BG_UNITS_NAME[self.bg_units]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
+            amount_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
+            amount = amount_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else amount_tmp / 10.0
+
+            time = str(timedelta(minutes=start))
+            seg = {
+                "amount" : amount,
+                "start_minutes" : start,
+                "time_str" : time
+            }
+            segments.update({ "{0}".format(i+1) : seg })
+            pos = pos + 0x03
+        return segments
+
+class OldBolusWizardBgTargetsEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                               self.bg_units_name, self.bg_units,
+                                                                               self.number_of_segments, self.segments)
+    @property
+    def bg_units(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
+
+    @property
+    def bg_units_name(self):
+        return NGPConstants.BG_UNITS_NAME[self.bg_units]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
+            high_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
+            high = high_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else high_tmp / 10.0
+            low_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
+            low = low_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else low_tmp / 10.0
+
+            time = str(timedelta(minutes=start))
+            seg = {
+                "start_minutes" : start,
+                "high" : high,
+                "low" : low,
+                "time_str" : time
+            }
+            segments.update({ "{0}".format(i+1) : seg })
+            pos = pos + 0x05
+        return segments
+
+class NewBolusWizardBgTargetsEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                               self.bg_units_name, self.bg_units,
+                                                                               self.number_of_segments, self.segments)
+    @property
+    def bg_units(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
+
+    @property
+    def bg_units_name(self):
+        return NGPConstants.BG_UNITS_NAME[self.bg_units]
+
+    @property
+    def number_of_segments(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def segments(self):
+        segments = {}
+        pos = 0x0D
+        for i in range(self.number_of_segments):
+            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
+            high_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
+            high = high_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else high_tmp / 10.0
+            low_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
+            low = low_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else low_tmp / 10.0
+
+            time = str(timedelta(minutes=start))
+            seg = {
+                "start_minutes" : start,
+                "high" : high,
+                "low" : low,
+                "time_str" : time
+            }
+            segments.update({ "{0}".format(i+1) : seg })
+            pos = pos + 0x05
+        return segments
+
+class SquareBolusOptionChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old Status:{1} ({2}), New Status:{3} ({4})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_status_name, self.old_status,
+            self.new_status_name, self.new_status,
+        )
+
+    @property
+    def old_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def old_status_name(self):
+        return "Off" if self.old_status == 0 else "On"
+
+    @property
+    def new_status_name(self):
+        return "Off" if self.new_status == 0 else "On"
+
+class DualBolusOptionChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old Status:{1} ({2}), New Status:{3} ({4})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_status_name, self.old_status,
+            self.new_status_name, self.new_status,
+        )
+
+    @property
+    def old_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def old_status_name(self):
+        return "Off" if self.old_status == 0 else "On"
+
+    @property
+    def new_status_name(self):
+        return "Off" if self.new_status == 0 else "On"
+
+class BolusIncrementChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old Status:{1} ({2}), New Status:{3} ({4})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_status_name, self.old_status,
+            self.new_status_name, self.new_status,
+        )
+
+    @property
+    def old_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def old_status_name(self):
+        return NGPConstants.BOLUS_STEP_SIZE_NAME[self.old_status]
+
+    @property
+    def new_status_name(self):
+        return NGPConstants.BOLUS_STEP_SIZE_NAME[self.new_status]
+
+class MaxBasalRateChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old Rate:{1}, New Rate:{2}").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_max_basal_rate, self.new_max_basal_rate)
+
+    @property
+    def old_max_basal_rate(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x0B) / 10000.0 )
+
+    @property
+    def new_max_basal_rate(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x0F) / 10000.0 )
+
+class MaxBolusChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old Rate:{1}, New Rate:{2}").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_max_bolus, self.new_max_bolus)
+
+    @property
+    def old_max_bolus(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x0B) / 10000.0 )
+
+    @property
+    def new_max_bolus(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x0F) / 10000.0 )
+
+class EasyBolusOptionChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old state:{1} ({2}), New state:{3} ({4}), Old step:{5}, New step:{6}").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_status_name, self.old_status,
+            self.new_status_name, self.new_status,
+            self.old_bolus_step, self.new_bolus_step,
+        )
+
+    @property
+    def old_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def old_status_name(self):
+        return "Off" if self.old_status == 0 else "On"
+
+    @property
+    def new_status_name(self):
+        return "Off" if self.new_status == 0 else "On"
+
+    @property
+    def old_bolus_step(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x0D) / 10000.0 )
+
+    @property
+    def new_bolus_step(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x11) / 10000.0 )
+
+class AutoSuspendChangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old state:{1} ({2}), New state:{3} ({4}), Old time:{5} ({7}), New time:{6} ({8})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_status_name, self.old_status,
+            self.new_status_name, self.new_status,
+            self.old_time, self.new_time,
+            self.old_time_minutes, self.new_time_minutes,
+        )
+
+    @property
+    def old_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+
+    @property
+    def old_status_name(self):
+        return "Off" if self.old_status == 0 else "On"
+
+    @property
+    def new_status_name(self):
+        return "Off" if self.new_status == 0 else "On"
+
+    @property
+    def old_time_minutes(self):
+        return (BinaryDataDecoder.read_byte(self.event_data, 0x0C) * 60 )
+
+    @property
+    def new_time_minutes(self):
+        return (BinaryDataDecoder.read_byte(self.event_data, 0x0E) * 60 )
+
+    @property
+    def old_time(self):
+        return str(timedelta(minutes=self.old_time_minutes))
+
+    @property
+    def new_time(self):
+        return str(timedelta(minutes=self.new_time_minutes))
+
+class BolusDeliveredRateCangeEvent(NGPHistoryEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Old state:{1} ({2}), New state:{3} ({4})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_status_name, self.old_status,
+            self.new_status_name, self.new_status
+        )
+
+    @property
+    def old_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def new_status(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def old_status_name(self):
+        return "Standard" if self.old_status == 0 else "Fast"
+
+    @property
+    def new_status_name(self):
+        return "Standard" if self.new_status == 0 else "Fast"
+
+
+
+
 class TimeResetEvent(NGPHistoryEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
@@ -1773,7 +2372,6 @@ class UserTimeDateChangeEvent(NGPHistoryEvent):
     def offset(self):
         return DateTimeHelper.decode_date_time_offset(self.datetime)
 
-
 class SensorGlucoseReadingsEvent(NGPHistoryEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
@@ -1811,7 +2409,7 @@ class SensorGlucoseReadingsEvent(NGPHistoryEvent):
                 # vctrraw = vctrraw & 0xFFFFFE00
             vctr = vctrraw / 100.0
 
-            rate_of_change = BinaryDataDecoder.read_uint16be(self.event_data, pos + 0x05) / 100.0
+            rate_of_change = float( struct.unpack( '>h', self.event_data[(pos + 0x05) : (pos + 0x07)] )[0] ) / 100
             sensor_status = BinaryDataDecoder.read_byte(self.event_data, 0x07)
             reading_status = BinaryDataDecoder.read_byte(self.event_data, 0x08)
 
@@ -1828,25 +2426,25 @@ class SensorGlucoseReadingsEvent(NGPHistoryEvent):
 
             sensor_exception_text = NGPConstants.SENSOR_EXCEPTIONS_NAME[sensor_exception]
 
-            yield SensorGlucoseReading(event_data=self.event_data,
-                                       timestamp=timestamp,
-                                       dynamic_action_requestor=self.dynamic_action_requestor,
-                                       sg=sg,
-                                       predicted_sg=self.predicted_sg,
-                                       noisy_data=noisy_data,
-                                       discard_data=discard_data,
-                                       sensor_error=sensor_error,
-                                       backfilled_data=backfilled_data,
-                                       settings_changed=settings_changed,
-                                       isig=isig,
-                                       rate_of_change=rate_of_change,
-                                       vctr=vctr,
-                                       sensor_exception_text=sensor_exception_text
+            yield SensorGlucoseReading(event_data = self.event_data,
+                                       timestamp = timestamp,
+                                       dynamic_action_requestor = self.dynamic_action_requestor,
+                                       sg = sg,
+                                       predicted_sg = self.predicted_sg,
+                                       noisy_data = noisy_data,
+                                       discard_data = discard_data,
+                                       sensor_error = sensor_error,
+                                       backfilled_data = backfilled_data,
+                                       settings_changed = settings_changed,
+                                       isig = isig,
+                                       rate_of_change = rate_of_change,
+                                       vctr = vctr,
+                                       sensor_exception_text = sensor_exception_text
                                        )
             pos = pos +9
 
 class SensorGlucoseReading(NGPHistoryEvent):
-    def __init__(self, event_data, timestamp, dynamic_action_requestor, sg, predicted_sg=0, isig=0, vctr=0, rate_of_change=0,
+    def __init__(self, event_data, timestamp, dynamic_action_requestor, sg, predicted_sg=0, isig=0, vctr=0, rate_of_change=0.0,
                  backfilled_data=False, settings_changed=False, noisy_data=False, discard_data=False, sensor_error=False,
                  sensor_exception_text=""):
         super().__init__(event_data)
@@ -1962,7 +2560,6 @@ class BolusWizardEstimateEvent(NGPHistoryEvent):
 
     @property
     def carb_units_name(self):
-        # See NGPUtil.NGPConstants.CARB_UNITS
         return NGPConstants.CARB_UNITS_NAME[self.carb_units]
 
     @property
@@ -2186,6 +2783,11 @@ class PumpEvent():
             self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
             return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
 
+        if code == 23:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority,NGPConstants.ALARM_MESSAGE_NAME[code])
+
         if code == 53:
             self.type = NGPConstants.ALARM_TYPE.PUMP
             self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
@@ -2324,6 +2926,11 @@ class PumpEvent():
             return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
 
         if code == 784:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 788:
             self.type = NGPConstants.ALARM_TYPE.SENSOR
             self.priority = NGPConstants.ALARM_PRIORITY.HIGH
             return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])

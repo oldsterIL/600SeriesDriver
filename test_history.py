@@ -26,9 +26,10 @@ if __name__ == '__main__':
     events = mt.process_pump_history(history_pages, cnl24lib.HistoryDataType.PUMP_DATA)
     print ("# All events:")
     for ev in events:
-        if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.PLGM_CONTROLLER_STATE: # or ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.TIME_RESET:
+        if ev.event_type != cnl24lib.NGPHistoryEvent.EVENT_TYPE.PLGM_CONTROLLER_STATE: # or ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.TIME_RESET:
         # if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.ALARM_CLEARED and "Don't parse data" in ev.alarm_string :
-            print (ev, binascii.hexlify(ev.event_data))
+        #     print (ev, binascii.hexlify(ev.event_data))
+            print (ev)
 
         # if ev.event_type != cnl24lib.NGPHistoryEvent.EVENT_TYPE.PLGM_CONTROLLER_STATE:
         #     print (ev )
