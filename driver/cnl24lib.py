@@ -175,10 +175,13 @@ class NGPConstants:
     class DUAL_BOLUS_PART:
         NORMAL_BOLUS = 1
         SQUARE_WAVE = 2
+        DUAL_WAVE = 5
 
     DUAL_BOLUS_PART_NAME = {
+        0: "Off",
         1: "Normal bolus",
-        2: "Square wave"
+        2: "Square wave",
+        5: "Dual wave"
     }
 
     TEMP_BASAL_PRESET_NAME = {
@@ -193,17 +196,18 @@ class NGPConstants:
         8: "Sick",
     }
 
-    BOLUS_PRESET_NAME = [
-        'Manual',
-        'Bolus 1',
-        'Bolus 2',
-        'Bolus 3',
-        'Bolus 4',
-        'Breakfast',
-        'Lunch',
-        'Dinner',
-        'Snack',
-    ]
+    BOLUS_PRESET_NAME = {
+        0: "Manual",
+        1: "Bolus 1",
+        2: "Bolus 2",
+        3: "Bolus 3",
+        4: "Bolus 4",
+        5: "Breakfast",
+        6: "Lunch",
+        7: "Dinner",
+        8: "Snack",
+        49: "NA"
+    }
 
     class SUSPEND_REASON:
         ALARM_SUSPEND = 1  # Battery change, cleared occlusion, etc
@@ -314,6 +318,8 @@ class NGPConstants:
         117 : "Active Insulin cleared|Any Active Insulin amount has been cleared.",
         775 : "Calibrate Now|Check BG and calibrate sensor.",
         776 : "Calibration not accepted|Recheck BG and calibrate sensor.",
+        777 : "Change Sensor|Sensor not working properly. Insert new sensor.",
+        778 : "Change Sensor|Second calibration not accepted. Insert new sensor.",
         780 : "Lost sensor signal|Move pump closer to transmitter. May take 15 minutes to find signal.",
         781 : "Possible signal interference|Move away from electronic devices. May take 15 minutes to find signal.",
         784 : "Rise Alert|Sensor glucose rising rapidly.",
@@ -330,8 +336,15 @@ class NGPConstants:
         802 : "Alert On Low {0} ({1})|Low sensor glucose. Check BG.",
         803 : "Alert On Low while suspended|Low sensor glucose. Insulin delivery suspended. Check BG.",
         805 : "Alert Before Low {0} ({1})|Sensor glucose approaching Low Limit. Check BG.",
+        806 : "Basal Delivery Resumed|(quiet)",
+        807 : "Basal Delivery Resumed|Basal delivery resumed at {0} after suspend by sensor. Check BG.",
+        808 : "Basal Delivery Resumed|Maximum 2 hour suspend time reached. Check BG.",
         809 : "Suspend On Low|Delivery stopped. Sensor glucose {0} ({1}). Check BG.",
+        810 : "Suspend Before Low|(quiet)",
+        811 : "Suspend Before Low|Delivery stopped. Sensor glucose approaching Low Limit. Check BG.",
         812 : "Suspend Before Low|Patient unresponsive, medical device emergency.",
+        814 : "Basal Delivery Resumed|Maximum 2 hour suspend time reached. SG is still under Low limit. Check BG.",
+        815 : "Basal Delivery Resumed|Low settings change caused basal to be resumed. Check BG.",
         816 : "Alert On High {0} ({1})|High sensor glucose. Check BG.",
         817 : "Alert Before High {0} ({1})|Sensor glucose approaching High Limit. Check BG.",
         869 : "Calibrate by {0}|Check BG and calibrate sensor to continue receiving sensor information.",
@@ -667,6 +680,14 @@ class NGPHistoryEvent:
             return AutoSuspendChangeEvent(self.event_data)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.BOLUS_DELIVERY_RATE_CHANGE:
             return BolusDeliveredRateCangeEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_PRESET_TEMP_BASAL:
+            return OldPresetTempBasalEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_PRESET_TEMP_BASAL:
+            return NewPresetTempBasalEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_PRESET_BOLUS:
+            return OldPresetBolusEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_PRESET_BOLUS:
+            return NewPresetBolusEvent(self.event_data)
         # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
         #     return ClosedLoopBloodGlucoseReadingEvent(self.eventData)
 
@@ -727,27 +748,34 @@ class BloodGlucoseReadingEvent(NGPHistoryEvent):
             return False
 
 class BolusDeliveredEvent(NGPHistoryEvent):
-    def __init__(self, event_data):
-        NGPHistoryEvent.__init__(self, event_data)
-        self.programmedEvent = None
-
-    def __str__(self):
-        return '{0} Source:{1}, Number:{2}, presetBolusNumber:{3}'.format(NGPHistoryEvent.__shortstr__(self),
-                                                                          self.bolus_source, self.bolus_number,
-                                                                          self.preset_bolus_number)
+    # def __init__(self, event_data):
+    #     NGPHistoryEvent.__init__(self, event_data)
+    #     self.programmedEvent = None
+    #
+    # def __str__(self):
+    #     return '{0} Source:{1}, Number:{2}, presetBolusNumber:{3}'.format(NGPHistoryEvent.__shortstr__(self),
+    #                                                                       self.bolus_source, self.bolus_number,
+    #                                                                       self.preset_bolus_number)
 
     @property
     def bolus_source(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)  # return this.eventData[0x0B]
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def bolus_source_name(self):
+        return NGPConstants.BOLUS_SOURCE_NAME[self.bolus_source]
 
     @property
     def bolus_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)  # return this.eventData[0x0C]
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
 
     @property
     def preset_bolus_number(self):
-        # See NGPUtil.NGPConstants.BOLUS_PRESET_NAME
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)  # return this.eventData[0x0D]
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+
+    @property
+    def preset_bolus_number_name(self):
+        return NGPConstants.BOLUS_PRESET_NAME[self.preset_bolus_number]
 
     def post_process(self, history_events):
         matches = [x for x in history_events
@@ -763,29 +791,12 @@ class NormalBolusDeliveredEvent(BolusDeliveredEvent):
         BolusDeliveredEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
+        return ("{0} Source:{1} ({2}), Bolus number:{3}, Preset:{8} ({4}), "
                "Programmed: {5}, Delivered:{6}, Active:{7}").format(NGPHistoryEvent.__shortstr__(self),
                                                                     self.bolus_source_name, self.bolus_source,
-                                                                    self.bolus_ref, self.preset_bolus_number,
+                                                                    self.bolus_number, self.preset_bolus_number,
                                                                     self.programmed_amount, self.delivered_amount,
-                                                                    self.active_insulin)
-
-    @property
-    def bolus_source(self):
-        # NGPConstants.BOLUS_SOURCE
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
-
-    @property
-    def bolus_source_name(self):
-        return NGPConstants.BOLUS_SOURCE_NAME[self.bolus_source]
-
-    @property
-    def bolus_ref(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def preset_bolus_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+                                                                    self.active_insulin, self.preset_bolus_number_name)
 
     @property
     def programmed_amount(self):
@@ -800,18 +811,22 @@ class NormalBolusDeliveredEvent(BolusDeliveredEvent):
         return BinaryDataDecoder.read_uint32be(self.event_data, 0x16) / 10000.0
 
 class BolusProgrammedEvent(NGPHistoryEvent):
-    def __init__(self, event_data):
-        NGPHistoryEvent.__init__(self, event_data)
-        self.bolusWizardEvent = None
-
-    def __str__(self):
-        return '{0} Source:{1}, Number:{2}, presetBolusNumber:{3}'.format(NGPHistoryEvent.__shortstr__(self),
-                                                                          self.preset, self.bolus_number,
-                                                                          self.preset_bolus_number)
+    # def __init__(self, event_data):
+    #     NGPHistoryEvent.__init__(self, event_data)
+    #     self.bolusWizardEvent = None
+    #
+    # def __str__(self):
+    #     return '{0} Source:{1}, Number:{2}, presetBolusNumber:{3}'.format(NGPHistoryEvent.__shortstr__(self),
+    #                                                                       self.bolus_source, self.bolus_number,
+    #                                                                       self.preset_bolus_number)
 
     @property
-    def preset(self):
+    def bolus_source(self):
         return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def bolus_source_name(self):
+        return NGPConstants.BOLUS_SOURCE_NAME[self.bolus_source]
 
     @property
     def bolus_number(self):
@@ -819,9 +834,11 @@ class BolusProgrammedEvent(NGPHistoryEvent):
 
     @property
     def preset_bolus_number(self):
-        # See NGPUtil.NGPConstants.BOLUS_PRESET_NAME
         return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
 
+    @property
+    def preset_bolus_number_name(self):
+        return NGPConstants.BOLUS_PRESET_NAME[self.preset_bolus_number]
 
 class NetworkDeviceConnectionEvent (NGPHistoryEvent):
     def __init__(self, event_data):
@@ -951,28 +968,11 @@ class NormalBolusProgrammedEvent(BolusProgrammedEvent):
         BolusProgrammedEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
+        return ("{0} Source:{1} ({2}), Bolus number:{3}, Preset:{4} ({7}), "
                "Programmed: {5}, Active:{6}").format(BolusProgrammedEvent.__shortstr__(self),
-                                                     self.bolus_source_name, self.preset,
-                                                     self.bolus_ref, self.preset_bolus_number,
-                                                     self.programmed_amount, self.active_insulin)
-
-    @property
-    def preset(self):
-        # NGPConstants.BOLUS_SOURCE
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
-
-    @property
-    def bolus_source_name(self):
-        return NGPConstants.BOLUS_SOURCE_NAME[self.preset]
-
-    @property
-    def bolus_ref(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def preset_bolus_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+                                                     self.bolus_source_name, self.bolus_source,
+                                                     self.bolus_number, self.preset_bolus_number_name,
+                                                     self.programmed_amount, self.active_insulin, self.preset_bolus_number)
 
     @property
     def programmed_amount(self):
@@ -997,29 +997,13 @@ class DualBolusProgrammedEvent(BolusProgrammedEvent):
         BolusProgrammedEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
-               "Normal: {5}, Square:{6}, Duration:{7}(Minutes), Active:{8}").format(BolusProgrammedEvent.__shortstr__(self),
-                                                                                    self.bolus_source_name, self.preset,
-                                                                                    self.bolus_ref, self.preset_bolus_number,
-                                                                                    self.normal_programmed_amount, self.square_programmed_amount,
-                                                                                    self.programmed_duration, self.active_insulin)
-
-    @property
-    def preset(self):
-        # NGPConstants.BOLUS_SOURCE
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
-
-    @property
-    def bolus_source_name(self):
-        return NGPConstants.BOLUS_SOURCE_NAME[self.preset]
-
-    @property
-    def bolus_ref(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def preset_bolus_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+        return ("{0} Source:{1} ({2}), Bolus number:{3}, Preset:{4} ({9}), "
+               "Normal: {5}, Square:{6}, Duration:{7}(Minutes), Active:{8}").format(
+            BolusProgrammedEvent.__shortstr__(self),
+            self.bolus_source_name, self.bolus_source,
+            self.bolus_number, self.preset_bolus_number_name,
+            self.normal_programmed_amount, self.square_programmed_amount,
+            self.programmed_duration, self.active_insulin, self.preset_bolus_number)
 
     @property
     def normal_programmed_amount(self):
@@ -1037,37 +1021,21 @@ class DualBolusProgrammedEvent(BolusProgrammedEvent):
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.event_data, 0x18) / 10000.0
 
-class DualBolusPartDeliveredEvent(BolusProgrammedEvent):
+class DualBolusPartDeliveredEvent(BolusDeliveredEvent):
     def __init__(self, event_data):
-        BolusProgrammedEvent.__init__(self, event_data)
+        BolusDeliveredEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
+        return ("{0} Source:{1} ({2}), Bolus number:{3}, Preset:{4} ({13}), "
                 "Normal: {5}, Square:{6}, Duration:{7}(Minutes), "
                 "Active:{8}, DeliveredAmount:{9}, BolusPart:{10} ({11}), "
-                "DeliveredDuration:{12}").format(BolusProgrammedEvent.__shortstr__(self),
-                                                self.bolus_source_name, self.preset,
-                                                self.bolus_ref, self.preset_bolus_number,
+                "DeliveredDuration:{12}").format(BolusDeliveredEvent.__shortstr__(self),
+                                                self.bolus_source_name, self.bolus_source,
+                                                self.bolus_number, self.preset_bolus_number_name,
                                                 self.normal_programmed_amount, self.square_programmed_amount,
                                                 self.programmed_duration, self.active_insulin,
-                                                self.delivered_amount,self.bolus_part_name, self.bolus_part, self.delivered_duration)
-
-    @property
-    def preset(self):
-        # NGPConstants.BOLUS_SOURCE
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
-
-    @property
-    def bolus_source_name(self):
-        return NGPConstants.BOLUS_SOURCE_NAME[self.preset]
-
-    @property
-    def bolus_ref(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def preset_bolus_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+                                                self.delivered_amount,self.bolus_part_name, self.bolus_part,
+                                                self.delivered_duration, self.preset_bolus_number)
 
     @property
     def normal_programmed_amount(self):
@@ -1083,12 +1051,10 @@ class DualBolusPartDeliveredEvent(BolusProgrammedEvent):
 
     @property
     def bolus_part(self):
-        # NGPConstants.DUAL_BOLUS_PART
         return BinaryDataDecoder.read_byte(self.event_data, 0x1A)
 
     @property
     def bolus_part_name(self):
-        # NGPConstants.DUAL_BOLUS_PART_NAME
         return NGPConstants.DUAL_BOLUS_PART_NAME[self.bolus_part]
 
     @property
@@ -1108,30 +1074,13 @@ class SquareBolusProgrammedEvent(BolusProgrammedEvent):
         BolusProgrammedEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
+        return ("{0} Source:{1} ({2}), Bolus number:{3}, Preset:{4} ({8}), "
                 "ProgrammedAmount: {5}, ProgrammedDuration:{6}(Minutes), "
                 "Active:{7}").format(BolusProgrammedEvent.__shortstr__(self),
-                            self.bolus_source_name, self.preset,
-                            self.bolus_ref, self.preset_bolus_number,
+                            self.bolus_source_name, self.bolus_source,
+                            self.bolus_number, self.preset_bolus_number_name,
                             self.programmed_amount, self.programmed_duration,
-                            self.active_insulin)
-
-    @property
-    def preset(self):
-        # NGPConstants.BOLUS_SOURCE
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
-
-    @property
-    def bolus_source_name(self):
-        return NGPConstants.BOLUS_SOURCE_NAME[self.preset]
-
-    @property
-    def bolus_ref(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def preset_bolus_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+                            self.active_insulin, self.preset_bolus_number)
 
     @property
     def programmed_amount(self):
@@ -1145,36 +1094,20 @@ class SquareBolusProgrammedEvent(BolusProgrammedEvent):
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.event_data, 0x14) / 10000.0
 
-class SquareBolusDeliveredEvent(BolusProgrammedEvent):
+class SquareBolusDeliveredEvent(BolusDeliveredEvent):
     def __init__(self, event_data):
-        BolusProgrammedEvent.__init__(self, event_data)
+        BolusDeliveredEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Source:{1} ({2}), Ref:{3}, Preset:{4}, "
+        return ("{0} Source:{1} ({2}), Bolus number:{3}, Preset:{4} ({10}), "
                 "ProgrammedAmount: {5}, DeliveredAmount:{6}, "
                 "ProgrammedDuration:{7}(Minutes), DeliveredDuration:{8}(Minutes), "
-                "Active:{9}").format(BolusProgrammedEvent.__shortstr__(self),
-                                    self.bolus_source_name, self.preset,
-                                    self.bolus_ref, self.preset_bolus_number,
+                "Active:{9}").format(BolusDeliveredEvent.__shortstr__(self),
+                                    self.bolus_source_name, self.bolus_source,
+                                    self.bolus_number, self.preset_bolus_number_name,
                                     self.programmed_amount, self.delivered_amount,
-                                    self.programmed_duration, self.delivered_duration, self.active_insulin)
-
-    @property
-    def preset(self):
-        # NGPConstants.BOLUS_SOURCE
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
-
-    @property
-    def bolus_source_name(self):
-        return NGPConstants.BOLUS_SOURCE_NAME[self.preset]
-
-    @property
-    def bolus_ref(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def preset_bolus_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+                                    self.programmed_duration, self.delivered_duration,
+                                    self.active_insulin, self.preset_bolus_number)
 
     @property
     def programmed_amount(self):
@@ -1196,13 +1129,13 @@ class SquareBolusDeliveredEvent(BolusProgrammedEvent):
     def active_insulin(self):
         return BinaryDataDecoder.read_uint32be(self.event_data, 0x1A) / 10000.0
 
-class TempBasalProgrammedEvent(BolusProgrammedEvent):
+class TempBasalProgrammedEvent(NGPHistoryEvent):
     def __init__(self, event_data):
-        BolusProgrammedEvent.__init__(self, event_data)
+        NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
         return ("{0} Preset:{1} ({2}), Type:{3} ({4}), Rate:{5}, "
-               "Percent:{6}%, Duration:{6}(Minutes)").format(BolusProgrammedEvent.__shortstr__(self),
+               "Percent:{6}%, Duration:{6}(Minutes)").format(NGPHistoryEvent.__shortstr__(self),
                                                              self.preset_name, self.preset,
                                                              self.type, self.type_name, self.rate,
                                                              self.percentage_of_rate, self.duration)
@@ -1225,7 +1158,6 @@ class TempBasalProgrammedEvent(BolusProgrammedEvent):
     def type_name(self):
         return NGPConstants.TEMP_BASAL_TYPE_NAME[self.type]
 
-
     @property
     def rate(self):
         return BinaryDataDecoder.read_uint32be(self.event_data, 0x0D) / 10000.0
@@ -1238,14 +1170,8 @@ class TempBasalProgrammedEvent(BolusProgrammedEvent):
     def duration(self):
         return BinaryDataDecoder.read_uint16be(self.event_data, 0x12)
 
-class OldBasalPatternEvent(NGPHistoryEvent):
-    def __init__(self, event_data):
-        NGPHistoryEvent.__init__(self, event_data)
+class BasalPatternEvent(NGPHistoryEvent):
 
-    def __str__(self):
-        return '{0} Pattern:{1} ({2}), SegmentsNumber:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
-                                                                    self.pattern_name, self.pattern_number,
-                                                                    self.number_of_segments,self.segments)
     @property
     def pattern_number(self):
         return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
@@ -1275,7 +1201,7 @@ class OldBasalPatternEvent(NGPHistoryEvent):
             pos = pos + 0x05
         return segments
 
-class NewBasalPatternEvent(NGPHistoryEvent):
+class OldBasalPatternEvent(BasalPatternEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
@@ -1283,34 +1209,15 @@ class NewBasalPatternEvent(NGPHistoryEvent):
         return '{0} Pattern:{1} ({2}), SegmentsNumber:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
                                                                     self.pattern_name, self.pattern_number,
                                                                     self.number_of_segments,self.segments)
-    @property
-    def pattern_number(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
 
-    @property
-    def pattern_name(self):
-        return NGPConstants.BASAL_PATTERN_NAME[self.pattern_number]
+class NewBasalPatternEvent(BasalPatternEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
 
-    @property
-    def number_of_segments(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def segments(self):
-        segments = {}
-        pos = 0x0D
-        for i in range(self.number_of_segments):
-            rate = BinaryDataDecoder.read_uint32be(self.event_data, pos) / 10000.0
-            start = (BinaryDataDecoder.read_byte(self.event_data, pos + 4) * 30)
-            time = str(timedelta(minutes=start))
-            seg = {
-                "rate" : rate,
-                "start_minutes" : start,
-                "time_str" : time
-            }
-            segments.update({"{0}".format(i+1) : seg })
-            pos = pos + 0x05
-        return segments
+    def __str__(self):
+        return '{0} Pattern:{1} ({2}), SegmentsNumber:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                    self.pattern_name, self.pattern_number,
+                                                                    self.number_of_segments,self.segments)
 
 class LowReservoirEvent(NGPHistoryEvent):
     def __init__(self, event_data):
@@ -1698,7 +1605,6 @@ class MissedMealBolusReminderChangeEvent(NGPHistoryEvent):
     def in_list_name(self):
         return "Yes" if self.new_status_enable == 1 else "No"
 
-
 class GlucoseSensorChangeEvent(NGPHistoryEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
@@ -1868,14 +1774,8 @@ class TimeFormatChangeEvent(NGPHistoryEvent):
     def new_time_format_name(self):
         return "12h" if self.new_number == 0 else "24h"
 
-class OldBolusWizardInsulinToCarbEvent(NGPHistoryEvent):
-    def __init__(self, event_data):
-        NGPHistoryEvent.__init__(self, event_data)
+class BolusWizardInsulinToCarbEvent(NGPHistoryEvent):
 
-    def __str__(self):
-        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
-                                                                                self.carb_units_name, self.carb_units,
-                                                                                self.number_of_segments, self.segments)
     @property
     def carb_units(self):
         return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=grams 1=exchanges
@@ -1907,7 +1807,7 @@ class OldBolusWizardInsulinToCarbEvent(NGPHistoryEvent):
             pos = pos + 0x05
         return segments
 
-class NewBolusWizardInsulinToCarbEvent(NGPHistoryEvent):
+class OldBolusWizardInsulinToCarbEvent(BolusWizardInsulinToCarbEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
@@ -1915,45 +1815,18 @@ class NewBolusWizardInsulinToCarbEvent(NGPHistoryEvent):
         return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
                                                                                 self.carb_units_name, self.carb_units,
                                                                                 self.number_of_segments, self.segments)
-    @property
-    def carb_units(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=grams 1=exchanges
 
-    @property
-    def carb_units_name(self):
-        return NGPConstants.CARB_UNITS_NAME[self.carb_units]
-
-    @property
-    def number_of_segments(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def segments(self):
-        segments = {}
-        pos = 0x0D
-        for i in range(self.number_of_segments):
-            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
-            amount_tmp = BinaryDataDecoder.read_uint32be(self.event_data, pos + 1)
-            amount = amount_tmp / 10.0 if (self.carb_units == NGPConstants.CARB_UNITS.GRAMS) else amount_tmp / 1000.0
-
-            time = str(timedelta(minutes=start))
-            seg = {
-                "amount" : amount,
-                "start_minutes" : start,
-                "time_str" : time
-            }
-            segments.update({ "{0}".format(i+1) : seg })
-            pos = pos + 0x05
-        return segments
-
-class OldBolusWizardInsulinSensitivityEvent(NGPHistoryEvent):
+class NewBolusWizardInsulinToCarbEvent(BolusWizardInsulinToCarbEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
         return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
-                                                                               self.bg_units_name, self.bg_units,
-                                                                               self.number_of_segments, self.segments)
+                                                                                self.carb_units_name, self.carb_units,
+                                                                                self.number_of_segments, self.segments)
+
+class BolusWizardInsulinSensitivityEvent(NGPHistoryEvent):
+
     @property
     def bg_units(self):
         return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
@@ -1985,7 +1858,7 @@ class OldBolusWizardInsulinSensitivityEvent(NGPHistoryEvent):
             pos = pos + 0x03
         return segments
 
-class NewBolusWizardInsulinSensitivityEvent(NGPHistoryEvent):
+class OldBolusWizardInsulinSensitivityEvent(BolusWizardInsulinSensitivityEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
@@ -1993,38 +1866,8 @@ class NewBolusWizardInsulinSensitivityEvent(NGPHistoryEvent):
         return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
                                                                                self.bg_units_name, self.bg_units,
                                                                                self.number_of_segments, self.segments)
-    @property
-    def bg_units(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
 
-    @property
-    def bg_units_name(self):
-        return NGPConstants.BG_UNITS_NAME[self.bg_units]
-
-    @property
-    def number_of_segments(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def segments(self):
-        segments = {}
-        pos = 0x0D
-        for i in range(self.number_of_segments):
-            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
-            amount_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
-            amount = amount_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else amount_tmp / 10.0
-
-            time = str(timedelta(minutes=start))
-            seg = {
-                "amount" : amount,
-                "start_minutes" : start,
-                "time_str" : time
-            }
-            segments.update({ "{0}".format(i+1) : seg })
-            pos = pos + 0x03
-        return segments
-
-class OldBolusWizardBgTargetsEvent(NGPHistoryEvent):
+class NewBolusWizardInsulinSensitivityEvent(BolusWizardInsulinSensitivityEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
@@ -2032,6 +1875,9 @@ class OldBolusWizardBgTargetsEvent(NGPHistoryEvent):
         return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
                                                                                self.bg_units_name, self.bg_units,
                                                                                self.number_of_segments, self.segments)
+
+class BolusWizardBgTargetsEvent(NGPHistoryEvent):
+
     @property
     def bg_units(self):
         return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
@@ -2066,7 +1912,7 @@ class OldBolusWizardBgTargetsEvent(NGPHistoryEvent):
             pos = pos + 0x05
         return segments
 
-class NewBolusWizardBgTargetsEvent(NGPHistoryEvent):
+class OldBolusWizardBgTargetsEvent(BolusWizardBgTargetsEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
@@ -2074,51 +1920,17 @@ class NewBolusWizardBgTargetsEvent(NGPHistoryEvent):
         return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
                                                                                self.bg_units_name, self.bg_units,
                                                                                self.number_of_segments, self.segments)
-    @property
-    def bg_units(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B) # 0=mgdl 1=mmol
 
-    @property
-    def bg_units_name(self):
-        return NGPConstants.BG_UNITS_NAME[self.bg_units]
-
-    @property
-    def number_of_segments(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def segments(self):
-        segments = {}
-        pos = 0x0D
-        for i in range(self.number_of_segments):
-            start = (BinaryDataDecoder.read_byte(self.event_data, pos) * 30)
-            high_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
-            high = high_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else high_tmp / 10.0
-            low_tmp = BinaryDataDecoder.read_uint16be(self.event_data, pos + 1)
-            low = low_tmp if self.bg_units == NGPConstants.BG_UNITS.MG_DL else low_tmp / 10.0
-
-            time = str(timedelta(minutes=start))
-            seg = {
-                "start_minutes" : start,
-                "high" : high,
-                "low" : low,
-                "time_str" : time
-            }
-            segments.update({ "{0}".format(i+1) : seg })
-            pos = pos + 0x05
-        return segments
-
-class SquareBolusOptionChangeEvent(NGPHistoryEvent):
+class NewBolusWizardBgTargetsEvent(BolusWizardBgTargetsEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
     def __str__(self):
-        return ("{0} Old Status:{1} ({2}), New Status:{3} ({4})").format(
-            NGPHistoryEvent.__shortstr__(self),
-            self.old_status_name, self.old_status,
-            self.new_status_name, self.new_status,
-        )
+        return '{0} Units:{1} ({2}), SegmentsNumbers:{3}, Segments:{4}'.format(NGPHistoryEvent.__shortstr__(self),
+                                                                               self.bg_units_name, self.bg_units,
+                                                                               self.number_of_segments, self.segments)
 
+class BolusOptionChangeEvent(NGPHistoryEvent):
     @property
     def old_status(self):
         return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
@@ -2135,7 +1947,7 @@ class SquareBolusOptionChangeEvent(NGPHistoryEvent):
     def new_status_name(self):
         return "Off" if self.new_status == 0 else "On"
 
-class DualBolusOptionChangeEvent(NGPHistoryEvent):
+class SquareBolusOptionChangeEvent(BolusOptionChangeEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
 
@@ -2146,21 +1958,16 @@ class DualBolusOptionChangeEvent(NGPHistoryEvent):
             self.new_status_name, self.new_status,
         )
 
-    @property
-    def old_status(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+class DualBolusOptionChangeEvent(BolusOptionChangeEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
 
-    @property
-    def new_status(self):
-        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
-
-    @property
-    def old_status_name(self):
-        return "Off" if self.old_status == 0 else "On"
-
-    @property
-    def new_status_name(self):
-        return "Off" if self.new_status == 0 else "On"
+    def __str__(self):
+        return ("{0} Old Status:{1} ({2}), New Status:{3} ({4})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.old_status_name, self.old_status,
+            self.new_status_name, self.new_status,
+        )
 
 class BolusIncrementChangeEvent(NGPHistoryEvent):
     def __init__(self, event_data):
@@ -2331,7 +2138,125 @@ class BolusDeliveredRateCangeEvent(NGPHistoryEvent):
     def new_status_name(self):
         return "Standard" if self.new_status == 0 else "Fast"
 
+class PresetTempBasalEvent(NGPHistoryEvent):
 
+    @property
+    def preset(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def preset_name(self):
+        return NGPConstants.TEMP_BASAL_PRESET_NAME[self.preset]
+
+    @property
+    def enable(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def enable_name(self):
+        return "Off" if self.enable == 0 else "On"
+
+    @property
+    def type(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+
+    @property
+    def type_name(self):
+        return NGPConstants.TEMP_BASAL_TYPE_NAME[self.type]
+
+    @property
+    def rate(self):
+        return BinaryDataDecoder.read_uint32be(self.event_data, 0x0E)
+
+    @property
+    def perc(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x12)
+
+    @property
+    def duration_minutes(self):
+        return BinaryDataDecoder.read_uint16be(self.event_data, 0x13)
+
+    @property
+    def duration(self):
+        return str(timedelta(minutes=self.duration_minutes))
+
+class OldPresetTempBasalEvent(PresetTempBasalEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Preset:{1} ({2}), State:{3} ({4}), Percent\Rate:{5}, Rate:{6}, Perc:{7}, Duration:{8} ({9})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.preset_name, self.preset,
+            self.enable_name, self.enable,
+            self.type_name, self.rate, self.perc, self.duration, self.duration_minutes)
+
+class NewPresetTempBasalEvent(PresetTempBasalEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Preset:{1} ({2}), State:{3} ({4}), Percent\Rate:{5}, Rate:{6}, Perc:{7}, Duration:{8} ({9})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.preset_name, self.preset,
+            self.enable_name, self.enable,
+            self.type_name, self.rate, self.perc, self.duration, self.duration_minutes)
+
+class PresetBolusEvent(NGPHistoryEvent):
+
+    @property
+    def preset(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0B)
+
+    @property
+    def preset_name(self):
+        return NGPConstants.BOLUS_PRESET_NAME[self.preset]
+
+    @property
+    def type(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def type_name(self):
+        return NGPConstants.DUAL_BOLUS_PART_NAME[self.type]
+
+    @property
+    def now_rate(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x0D) / 10000.0)
+
+    @property
+    def square_rate(self):
+        return (BinaryDataDecoder.read_uint32be(self.event_data, 0x11) / 10000.0)
+
+    @property
+    def duration_minutes(self):
+        return BinaryDataDecoder.read_uint16be(self.event_data, 0x15)
+
+    @property
+    def duration(self):
+        return str(timedelta(minutes=self.duration_minutes))
+
+class OldPresetBolusEvent(PresetBolusEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Preset Bolus:{1} ({2}), Type:{3} ({4}), Now rate:{5}, Square rate:{6}, Duration:{7} ({8})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.preset_name, self.preset,
+            self.type_name, self.type,
+            self.now_rate, self.square_rate, self.duration, self.duration_minutes)
+
+class NewPresetBolusEvent(PresetBolusEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} Preset Bolus:{1} ({2}), Type:{3} ({4}), Now rate:{5}, Square rate:{6}, Duration:{7} ({8})").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.preset_name, self.preset,
+            self.type_name, self.type,
+            self.now_rate, self.square_rate, self.duration, self.duration_minutes)
 
 
 class TimeResetEvent(NGPHistoryEvent):
@@ -2915,6 +2840,16 @@ class PumpEvent():
             self.priority = NGPConstants.ALARM_PRIORITY.HIGH
             return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
 
+        if code == 777:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        if code == 778:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
         if code == 780:
             self.type = NGPConstants.ALARM_TYPE.SENSOR
             self.priority = NGPConstants.ALARM_PRIORITY.LOW
@@ -3008,6 +2943,24 @@ class PumpEvent():
             else:
                 return "[Error data]"
 
+        elif code == 806:
+            self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        elif code == 807:
+            self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            time = self.get_clock(4,data)
+            # TODO Add time to output (self.time)
+            self.time = time
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).format(time))
+
+        elif code == 808:
+            self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
         elif code == 809:
             bg = self.get_glucose(0x01,data)
             self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
@@ -3016,13 +2969,32 @@ class PumpEvent():
                 self.bg = bg
                 return self.format(self.type, self.priority, (NGPConstants.ALARM_MESSAGE_NAME[code]).
                                    format(bg, round(bg/NGPConstants.BG_UNITS.MMOLXLFACTOR,1)))
-
             else:
                 return "[Error data]"
+
+        elif code == 810:
+            self.type = NGPConstants.ALARM_TYPE.SMARTGUARD
+            self.priority = NGPConstants.ALARM_PRIORITY.LOW
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        elif code == 811:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
 
         if code == 812:
             self.type = NGPConstants.ALARM_TYPE.PUMP
             self.priority = NGPConstants.ALARM_PRIORITY.EMERGENCY
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        elif code == 814:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
+            return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
+
+        elif code == 815:
+            self.type = NGPConstants.ALARM_TYPE.PUMP
+            self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
             return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
 
         elif code == 816:
@@ -3094,7 +3066,7 @@ class PumpEvent():
         msg = str.split("|")
         string = string + msg[0]
         if len(msg) >=2 :
-            string = string + "~" + msg[1]
+            string = string + "|" + msg[1]
         return string
 
 class AlarmNotificationEvent(NGPHistoryEvent):
@@ -3554,11 +3526,6 @@ class SourceIdConfigurationEvent(NGPHistoryEvent):
             segments.update({"{0}".format(i+1) : seg })
             pos = pos + 0x1E
         return segments
-
-
-
-
-
 
 class StartOfDayMarkerEvent(NGPHistoryEvent):
     def __str__(self):
