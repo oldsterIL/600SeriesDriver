@@ -810,7 +810,6 @@ class NormalBolusDeliveredEvent(BolusDeliveredEvent):
             self.canceledEvent = matches[0]
             self.canceled = True
 
-
 class BolusProgrammedEvent(NGPHistoryEvent):
 
     @property
@@ -979,6 +978,7 @@ class NormalBolusProgrammedEvent(BolusProgrammedEvent):
         matches = [x for x in history_events
                    if isinstance(x, BolusWizardEstimateEvent)
                    and x.timestamp < self.timestamp
+                   and x.programmed == False
                    and self.timestamp - x.timestamp < timedelta(minutes=5)
                    and x.final_estimate == self.programmed_amount]
         if len(matches) == 1:
@@ -1022,6 +1022,7 @@ class DualBolusProgrammedEvent(BolusProgrammedEvent):
         matches = [x for x in history_events
                    if isinstance(x, BolusWizardEstimateEvent)
                    and x.timestamp < self.timestamp
+                   and x.programmed == False
                    and self.timestamp - x.timestamp < timedelta(minutes=5)
                    and x.final_estimate == self.programmed_amount]
         if len(matches) == 1:
@@ -1083,7 +1084,7 @@ class DualBolusPartDeliveredEvent(BolusDeliveredEvent):
                    if isinstance(x, DualBolusProgrammedEvent)
                    and x.bolus_number == self.bolus_number
                    and x.timestamp < self.timestamp
-                   and self.timestamp - x.timestamp < timedelta(minutes=self.programmed_duration)]
+                   and self.timestamp - x.timestamp < timedelta(minutes=(self.programmed_duration + 1))]
         if len(matches) == 1:
             self.programmedEvent = matches[0]
 
@@ -1095,7 +1096,6 @@ class DualBolusPartDeliveredEvent(BolusDeliveredEvent):
         if len(matches) == 1:
             self.canceledEvent = matches[0]
             self.canceled = True
-
 
 class SquareBolusProgrammedEvent(BolusProgrammedEvent):
     def __init__(self, event_data):
@@ -1126,6 +1126,7 @@ class SquareBolusProgrammedEvent(BolusProgrammedEvent):
         matches = [x for x in history_events
                    if isinstance(x, BolusWizardEstimateEvent)
                    and x.timestamp < self.timestamp
+                   and x.programmed == False
                    and self.timestamp - x.timestamp < timedelta(minutes=5)
                    and x.final_estimate == self.programmed_amount]
         if len(matches) == 1:
@@ -1173,7 +1174,7 @@ class SquareBolusDeliveredEvent(BolusDeliveredEvent):
                    if isinstance(x, SquareBolusProgrammedEvent)
                    and x.bolus_number == self.bolus_number
                    and x.timestamp < self.timestamp
-                   and self.timestamp - x.timestamp < timedelta(minutes=self.programmed_duration)]
+                   and self.timestamp - x.timestamp < timedelta(minutes=(self.programmed_duration + 1))]
         if len(matches) == 1:
             self.programmedEvent = matches[0]
 
