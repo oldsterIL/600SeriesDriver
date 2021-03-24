@@ -319,6 +319,7 @@ class NGPConstants:
         780 : "Lost sensor signal|Move pump closer to transmitter. May take 15 minutes to find signal.",
         781 : "Possible signal interference|Move away from electronic devices. May take 15 minutes to find signal.",
         784 : "Rise Alert|Sensor glucose rising rapidly.",
+        786 : "No calibration occurred|Confirm sensor signal. Calibrate by {0}.",
         788 : "BG not received|Place pump close to transmitter. Select OK to resend BG to transmitter.",
         790 : "Cannot find sensor signal|Disconnect and reconnect transmitter. Notice if transmitter light blinks.",
         791 : "Sensor signal not found|Did transmitter light blink when connected to sensor?",
@@ -2760,7 +2761,10 @@ class PumpEvent():
     def alarm_string(self):
         code = self.code
         data = self.data
-        self.string = NGPConstants.ALARM_MESSAGE_NAME[code]
+        if code in NGPConstants.ALARM_MESSAGE_NAME:
+            self.string = NGPConstants.ALARM_MESSAGE_NAME[code]
+        else:
+            self.string = ""
 
         if code == 3:
             self.type = NGPConstants.ALARM_TYPE.PUMP
@@ -2954,6 +2958,12 @@ class PumpEvent():
             self.priority = NGPConstants.ALARM_PRIORITY.HIGH
             return self.format(self.type, self.priority, NGPConstants.ALARM_MESSAGE_NAME[code])
 
+        if code == 786:
+            self.type = NGPConstants.ALARM_TYPE.SENSOR
+            self.priority = NGPConstants.ALARM_PRIORITY.HIGH
+            time = self.get_clock(0, data)
+            return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).format(time))
+
         if code == 788:
             self.type = NGPConstants.ALARM_TYPE.SENSOR
             self.priority = NGPConstants.ALARM_PRIORITY.HIGH
@@ -3112,7 +3122,6 @@ class PumpEvent():
             self.type = NGPConstants.ALARM_TYPE.REMINDER
             self.priority = NGPConstants.ALARM_PRIORITY.NORMAL
 
-            # TODO
             time = self.get_clock(0,data)
             self.time = time
             return self.format(self.type, self.priority,(NGPConstants.ALARM_MESSAGE_NAME[code]).format(time))
@@ -3752,7 +3761,7 @@ class DateTimeHelper(object):
         # For example, if baseTime + rtc + offset was 1463137668, this would be
         # Fri, 13 May 2016 21:07:48 UTC.
         # However, the time the pump *means* is Fri, 13 May 2016 21:07:48 in our own timezone
-        offset_from_utc = (datetime.datetime.utcnow() - datetime.datetime.now()).total_seconds()
+        offset_from_utc = int((datetime.datetime.utcnow() - datetime.datetime.now()).total_seconds())
         epoch_time = DateTimeHelper.baseTime + rtc + offset + offset_from_utc
         if epoch_time < 0:
             epoch_time = 0
