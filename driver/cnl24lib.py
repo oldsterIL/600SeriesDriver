@@ -805,8 +805,8 @@ class NormalBolusDeliveredEvent(BolusDeliveredEvent):
         matches = [x for x in history_events
                    if isinstance(x, BolusCanceledEvent)
                    and x.bolus_number == self.bolus_number
-                   and x.timestamp < self.timestamp
-                   and self.timestamp - x.timestamp < timedelta(minutes=5)]
+                   and x.timestamp <= self.timestamp
+                   and self.timestamp - x.timestamp <= timedelta(minutes=5)]
         if len(matches) == 1:
             self.canceledEvent = matches[0]
             self.canceled = True
@@ -1092,8 +1092,8 @@ class DualBolusPartDeliveredEvent(BolusDeliveredEvent):
         matches = [x for x in history_events
                    if isinstance(x, BolusCanceledEvent)
                    and x.bolus_number == self.bolus_number
-                   and x.timestamp < self.timestamp
-                   and self.timestamp - x.timestamp < timedelta(minutes=self.programmed_duration)]
+                   and x.timestamp <= self.timestamp
+                   and self.timestamp - x.timestamp <= timedelta(minutes=self.programmed_duration)]
         if len(matches) == 1:
             self.canceledEvent = matches[0]
             self.canceled = True
@@ -1182,8 +1182,8 @@ class SquareBolusDeliveredEvent(BolusDeliveredEvent):
         matches = [x for x in history_events
                    if isinstance(x, BolusCanceledEvent)
                    and x.bolus_number == self.bolus_number
-                   and x.timestamp < self.timestamp
-                   and self.timestamp - x.timestamp < timedelta(minutes=self.programmed_duration)]
+                   and x.timestamp <= self.timestamp
+                   and self.timestamp - x.timestamp <= timedelta(minutes=self.programmed_duration)]
         if len(matches) == 1:
             self.canceledEvent = matches[0]
             self.canceled = True
@@ -3761,7 +3761,9 @@ class DateTimeHelper(object):
         # For example, if baseTime + rtc + offset was 1463137668, this would be
         # Fri, 13 May 2016 21:07:48 UTC.
         # However, the time the pump *means* is Fri, 13 May 2016 21:07:48 in our own timezone
+
         offset_from_utc = int((datetime.datetime.utcnow() - datetime.datetime.now()).total_seconds())
+        # offset_from_utc = (datetime.datetime.utcnow() - datetime.datetime.now()).total_seconds()
         epoch_time = DateTimeHelper.baseTime + rtc + offset + offset_from_utc
         if epoch_time < 0:
             epoch_time = 0

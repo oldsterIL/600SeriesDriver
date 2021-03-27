@@ -59,9 +59,9 @@ if __name__ == '__main__':
                                 logger.info("Pump time drift: {0}".format(mt.pump_time_drift))
 
                                 # !!! Max timedelta = 10 days
-                                start_date = datetime.datetime.now() - datetime.timedelta(days=10)
+                                # start_date = datetime.datetime.now() - datetime.timedelta(days=10)
                                 # TODO find a solution how to set the time to the nearest minute
-                                # start_date = datetime.datetime.now() - datetime.timedelta(minutes=30)
+                                start_date = datetime.datetime.now() - datetime.timedelta(minutes=30)
                                 # end_date = datetime.datetime.now() - datetime.timedelta(days=70)
                                 end_date = datetime.datetime.max
 
@@ -210,3 +210,44 @@ if __name__ == '__main__':
     else:
         logger.info("Error open USB")
 
+
+# BolusDeliveredRateCangeEvent
+# BolusIncrementChangeEvent
+# BolusWizardEstimateEvent ???
+# DailyTotalsEvent
+
+# EasyBolusOptionChangeEvent
+# MaxBolusChangeEvent
+
+# NewPresetBolusEvent
+# OldPresetBolusEvent
+
+# + SquareBolusDeliveredEvent
+# + SquareBolusProgrammedEvent
+
+# + DualBolusPartDeliveredEvent
+# + DualBolusProgrammedEvent
+
+# + NormalBolusProgrammedEvent
+# + NormalBolusDeliveredEvent
+
+
+# NGPHistoryEvent 0x27 2021-03-02 09:18:51.999963+04:00 b'002e 02'
+# 02 ->
+#     BOLUS_SOURCE_NAME = {
+#         0: "Manual",
+#         1: "Bolus wizard",
+#         2: "Easy bolus",
+#         4: "Preset bolus",
+#         5: "Closed loop micro bolus",
+#         6: "Closed loop BG correction",
+#         7: "Closed loop food bolus",
+#         8: "Closed loop BG correction and food bolus",
+#         -1: "NA",
+#     }
+
+# OLD(NEW)_LOW_SENSOR_WARNING_LEVELS
+# NGPHistoryEvent 0xD2 2021-02-22 05:09:36.999963+04:00 b'0100140000000000'
+# NGPHistoryEvent 0xD3 2021-02-22 05:09:36.999967+04:00 b'0100140100002c15'
+# NGPHistoryEvent 0xD2 2021-02-22 05:09:36.999966+04:00 b'0100140100002c15'
+# NGPHistoryEvent 0xD3 2021-02-22 05:09:36.999966+04:00 b'0101140100002c15'

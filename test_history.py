@@ -27,7 +27,8 @@ if __name__ == '__main__':
     print ("# All events:")
     for ev in events:
         if ev.event_type != cnl24lib.NGPHistoryEvent.EVENT_TYPE.PLGM_CONTROLLER_STATE: # or ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.TIME_RESET:
-        # if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.ALARM_CLEARED and "Don't parse data" in ev.alarm_string :
+        # if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.ALARM_NOTIFICATION and "Don't parse data" in ev.alarm_string :
+        # if ev.event_type == cnl24lib.NGPHistoryEvent.EVENT_TYPE.ALARM_NOTIFICATION:
         #     print (ev, binascii.hexlify(ev.event_data))
             print (ev)
 
