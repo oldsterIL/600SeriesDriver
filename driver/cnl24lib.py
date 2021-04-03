@@ -687,6 +687,14 @@ class NGPHistoryEvent:
             return NewPresetBolusEvent(self.event_data)
         elif self.event_type == NGPHistoryEvent.EVENT_TYPE.BOLUS_CANCELED:
             return BolusCanceledEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_HIGH_SENSOR_WARNING_LEVELS:
+            return NewHighSensorWarningLevelEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_HIGH_SENSOR_WARNING_LEVELS:
+            return OldHighSensorWarningLevelEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.NEW_LOW_SENSOR_WARNING_LEVELS:
+            return NewLowSensorWarningLevelEvent(self.event_data)
+        elif self.event_type == NGPHistoryEvent.EVENT_TYPE.OLD_LOW_SENSOR_WARNING_LEVELS:
+            return OldLowSensorWarningLevelEvent(self.event_data)
         # elif self.event_type == NGPHistoryEvent.EVENT_TYPE.CLOSED_LOOP_BG_READING:
         #     return ClosedLoopBloodGlucoseReadingEvent(self.eventData)
 
@@ -2317,6 +2325,165 @@ class NewPresetBolusEvent(PresetBolusEvent):
             self.type_name, self.type,
             self.now_rate, self.square_rate, self.duration, self.duration_minutes)
 
+class LowSensorWarningLevelEvent(NGPHistoryEvent):
+
+    @property
+    def low_settings(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def low_settings_name(self):
+        return "off" if self.low_settings == 0 else "on"
+
+    @property
+    def snooze(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+
+    @property
+    def snooze_duration(self):
+        return str(timedelta(minutes=self.snooze))
+
+    @property
+    def count(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0E)
+
+    @property
+    def lists(self):
+        segments = {}
+        pos = 0x0F
+        for i in range(self.count):
+            start_time = BinaryDataDecoder.read_uint16be(self.event_data, pos)
+            start_time_str = str(timedelta(minutes=start_time))
+            low_bg_value = BinaryDataDecoder.read_byte(self.event_data, pos + 0x02) / 10.0
+
+            alert_on_low = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x03) & 1) == 1
+            alert_before_low = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x03) & 2) == 2
+            suspend_on_low = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x03) & 4) == 4
+            suspend_before_low = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x03) & 8) == 8
+            resume_basal_alert = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x03) & 16) == 16
+
+            seg = {
+                "start_time_minutes" : start_time,
+                "start_time_str" : start_time_str,
+                "low_bg_value" : low_bg_value,
+                "alert_on_low" : alert_on_low,
+                "alert_before_low" : alert_before_low,
+                "suspend_on_low" : suspend_on_low,
+                "resume_basal_alert" : resume_basal_alert,
+                "suspend_before_low": suspend_before_low,
+            }
+            segments.update({"{0}".format(i+1) : seg })
+            pos = pos + 0x04
+        return segments
+
+class NewLowSensorWarningLevelEvent(LowSensorWarningLevelEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} LowSettings:{1} ({2}), Snooze:{3} ({4}), Count:{5}, List:{6}").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.low_settings_name, self.low_settings,
+            self.snooze_duration, self.snooze, self.count, self.lists)
+
+class OldLowSensorWarningLevelEvent(LowSensorWarningLevelEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} LowSettings:{1} ({2}), Snooze:{3} ({4}), Count:{5}, List:{6}").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.low_settings_name, self.low_settings,
+            self.snooze_duration, self.snooze, self.count, self.lists)
+
+class HiSensorWarningLevelEvent(NGPHistoryEvent):
+
+    @property
+    def high_settings(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0C)
+
+    @property
+    def high_settings_name(self):
+        return "off" if self.high_settings == 0 else "on"
+
+    @property
+    def snooze(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0D)
+
+    @property
+    def snooze_duration(self):
+        return str(timedelta(minutes=self.snooze))
+
+    @property
+    def count(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x0E)
+
+    @property
+    def lists(self):
+        segments = {}
+        pos = 0x0F
+        for i in range(self.count):
+            start_time = BinaryDataDecoder.read_uint16be(self.event_data, pos)
+            start_time_str = str(timedelta(minutes=start_time))
+            hi_bg_value = BinaryDataDecoder.read_uint16be(self.event_data, pos + 0x02) / 10.0
+
+            alert_before_high = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x04) & 2) == 2
+            time_before_high = BinaryDataDecoder.read_byte(self.event_data, pos + 0x05)
+            time_before_high_stf = str(timedelta(minutes=time_before_high))
+            alert_on_high = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x04) & 1) == 1
+            rise_alert = (BinaryDataDecoder.read_byte(self.event_data, pos + 0x04) & 4) == 4
+
+            rise_limit = BinaryDataDecoder.read_byte(self.event_data, pos + 0x06)
+            rise_limit_custom = BinaryDataDecoder.read_uint16be(self.event_data, pos + 0x07) / 1000.0
+
+            if rise_limit == 0x01:
+                rise_limit_txt = "1 arrows up"
+            elif rise_limit == 0x02:
+                rise_limit_txt = "2 arrows up"
+            elif rise_limit == 0x03:
+                rise_limit_txt = "3 arrows up"
+            elif rise_limit == 0x04:
+                rise_limit_txt = "custom: {}".format(rise_limit_custom)
+            else:
+                rise_limit_txt = "unknown"
+
+            seg = {
+                "start_time_minutes" : start_time,
+                "start_time_str" : start_time_str,
+                "hi_bg_value" : hi_bg_value,
+                "alert_before_high" : alert_before_high,
+                "time_before_high" : time_before_high,
+                "time_before_high_stf" : time_before_high_stf,
+                "alert_on_high" : alert_on_high,
+                "rise_alert" : rise_alert,
+                "rise_limit_txt" : rise_limit_txt,
+                "rise_limit" : rise_limit,
+                "rise_limit_custom" : rise_limit_custom,
+            }
+            segments.update({"{0}".format(i+1) : seg })
+            pos = pos + 0x09
+        return segments
+
+class NewHighSensorWarningLevelEvent(HiSensorWarningLevelEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} HighSettings:{1} ({2}), Snooze:{3} ({4}), Count:{5}, List:{6}").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.high_settings_name, self.high_settings,
+            self.snooze_duration, self.snooze, self.count, self.lists)
+
+class OldHighSensorWarningLevelEvent(HiSensorWarningLevelEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return ("{0} HighSettings:{1} ({2}), Snooze:{3} ({4}), Count:{5}, List:{6}").format(
+            NGPHistoryEvent.__shortstr__(self),
+            self.high_settings_name, self.high_settings,
+            self.snooze_duration, self.snooze, self.count, self.lists)
+
 class BolusCanceledEvent(NGPHistoryEvent):
     def __init__(self, event_data):
         NGPHistoryEvent.__init__(self, event_data)
@@ -3222,13 +3389,62 @@ class AlarmClearedEvent(NGPHistoryEvent):
     def fault_number(self):
         return BinaryDataDecoder.read_uint16be(self.event_data, 0x0B)
 
-class SensorAlertSilenceStartedEvent(NGPHistoryEvent):
-    def __str__(self):
-        return '{0}'.format(NGPHistoryEvent.__str__(self))
+class SensorAlertSilenceEvent(NGPHistoryEvent):
 
-class SensorAlertSilenceEndedEvent(NGPHistoryEvent):
+    @property
+    def high_alerts_only(self):
+        return True if BinaryDataDecoder.read_byte(self.event_data, 0x0B) == 0 else False
+
+    @property
+    def high_low_alerts(self):
+        return (BinaryDataDecoder.read_byte(self.event_data, 0x0B) & 1) == 1
+
+    @property
+    def all_sensor_alerts(self):
+        return (BinaryDataDecoder.read_byte(self.event_data, 0x0B) & 2) == 2
+
+    @property
+    def time_remaining_minutes(self):
+        return BinaryDataDecoder.read_uint16be(self.event_data, 0x0C)
+
+    @property
+    def time_remaining_str(self):
+        return str(timedelta(minutes=self.time_remaining_minutes))
+
+
+class SensorAlertSilenceStartedEvent(SensorAlertSilenceEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
     def __str__(self):
-        return '{0}'.format(NGPHistoryEvent.__str__(self))
+        return '{0} high_alerts_only:{1}, high_low_alerts:{2}, all_sensor_alerts:{3}, Time remaining:{4} ({5})'.format(
+            NGPHistoryEvent.__shortstr__(self), self.high_alerts_only, self.high_low_alerts, self.all_sensor_alerts,
+            self.time_remaining_str, self.time_remaining_minutes)
+
+class SensorAlertSilenceEndedEvent(SensorAlertSilenceEvent):
+    def __init__(self, event_data):
+        NGPHistoryEvent.__init__(self, event_data)
+
+    def __str__(self):
+        return '{0} high_alerts_only:{1}, high_low_alerts:{2}, all_sensor_alerts:{3}, Time remaining:{4} ({5}), Time canceled:{6} ({7}), Canceled type:{8} ({9})'.format(
+            NGPHistoryEvent.__shortstr__(self), self.high_alerts_only, self.high_low_alerts, self.all_sensor_alerts,
+            self.time_remaining_str, self.time_remaining_minutes, self.time_canceled_str, self.time_canceled_minutes, self.canceled_type_name, self.canceled_type)
+
+    @property
+    def time_canceled_minutes(self):
+        return BinaryDataDecoder.read_uint16be(self.event_data, 0x0E)
+
+    @property
+    def time_canceled_str(self):
+        return str(timedelta(minutes=self.time_canceled_minutes))
+
+    @property
+    def canceled_type(self):
+        return BinaryDataDecoder.read_byte(self.event_data, 0x10)
+
+    @property
+    def canceled_type_name(self):
+        return "auto" if self.canceled_type == 1 else "manual"
 
 class CalibrationReminderChangeEvent(NGPHistoryEvent):
     def __init__(self, event_data):
@@ -3250,6 +3466,7 @@ class CalibrationReminderChangeEvent(NGPHistoryEvent):
     @property
     def old_status_name(self):
         return "On" if self.old_status == 1 else "Off"
+
     @property
     def new_status_name(self):
         return "On" if self.new_status == 1 else "Off"
